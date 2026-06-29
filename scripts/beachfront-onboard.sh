@@ -13,7 +13,10 @@
 #   4. The repo settings the headless loop depends on:
 #        - Actions may create pull requests
 #        - Actions default workflow permissions = write
-#   5. A PR that runs the OFFICIAL `sandcastle init` (@latest) for the base config
+#   5. Branch protection on the default branch (#43): PRs only, no required reviewer,
+#      enforced for admins. Required status checks are opt-in via BEACHFRONT_REQUIRED_CHECKS
+#      (an onboarded repo's CI differs from ours).
+#   6. A PR that runs the OFFICIAL `sandcastle init` (@latest) for the base config
 #      (so Sandcastle's Dockerfile/run harness stay current), then overlays only the
 #      Beachfront-specific bits (tuned prompt, CI run config, headless workflow) plus
 #      the package.json launcher wiring.
@@ -104,12 +107,37 @@ gh api -X PUT "repos/$REPO/actions/permissions/workflow" \
   -F default_workflow_permissions=write \
   -F can_approve_pull_request_reviews=true >/dev/null
 
-# 5. Install latest official Sandcastle + Beachfront overlay via a PR ---------
+DEFAULT_BRANCH="$(gh repo view "$REPO" --json defaultBranchRef --jq .defaultBranchRef.name)"
+
+# 5. Branch protection on the default branch (#43) ---------------------------
+# Mirror the Tool repo's protection: require a PR to merge (no direct pushes),
+# enforced for admins too, with NO required reviewer so the bot can merge on green.
+# Required STATUS CHECKS are per-repo (an onboarded repo's CI isn't ours — it has no
+# typecheck/test/build job), so they're opt-in: pass BEACHFRONT_REQUIRED_CHECKS as a
+# comma-separated list of check names to gate on, else we enforce PRs-only and the
+# owner can add their contexts later. Needs admin on the repo (already assumed).
+echo "▸ Protecting the $DEFAULT_BRANCH branch (PRs only, no required reviewer)"
+CHECKS_JSON="null"
+if [ -n "${BEACHFRONT_REQUIRED_CHECKS:-}" ]; then
+  CHECKS_JSON="$(jq -cn --arg c "$BEACHFRONT_REQUIRED_CHECKS" \
+    '{strict: true, contexts: ($c | split(",") | map(gsub("^ +| +$"; "")) | map(select(length > 0)))}')"
+fi
+if jq -cn --argjson checks "$CHECKS_JSON" '{
+     required_status_checks: $checks,
+     enforce_admins: true,
+     required_pull_request_reviews: { required_approving_review_count: 0 },
+     restrictions: null
+   }' | gh api --method PUT "repos/$REPO/branches/$DEFAULT_BRANCH/protection" --input - >/dev/null 2>&1; then
+  echo "  · branch protection applied${BEACHFRONT_REQUIRED_CHECKS:+ (required checks: $BEACHFRONT_REQUIRED_CHECKS)}"
+else
+  echo "  · ⚠ could not set branch protection (needs admin on $REPO — set it in repo Settings → Branches)"
+fi
+
+# 6. Install latest official Sandcastle + Beachfront overlay via a PR ---------
 echo "▸ Scaffolding the latest official Sandcastle + Beachfront overlay"
 command -v npx >/dev/null || { echo "✗ npx (Node.js) is required"; exit 1; }
 TMP="$(mktemp -d)"; trap 'rm -rf "$TMP"' EXIT
 gh repo clone "$REPO" "$TMP/repo" -- --depth 1 >/dev/null 2>&1
-DEFAULT_BRANCH="$(gh repo view "$REPO" --json defaultBranchRef --jq .defaultBranchRef.name)"
 cd "$TMP/repo"
 git switch -c beachfront/onboard >/dev/null 2>&1
 
