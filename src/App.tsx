@@ -1,13 +1,14 @@
 import { AuthPanel } from "./auth/AuthPanel.tsx";
 import { useAuthContext } from "./auth/AuthContext.tsx";
 import { RegistryIssues } from "./github/RegistryIssues.tsx";
+import { RegistryRuns } from "./github/RegistryRuns.tsx";
 import { loadRegistry } from "./registry/registry.ts";
 
 /**
- * Walking-skeleton shell. The full panes (Attention queue, ready-for-agent pool,
- * Agent runs) arrive in later slices; this slice aggregates open issues across
- * every Registry repo (#5), grouped by repo, gated on the Viewer's identity
- * (ADR-0001).
+ * Walking-skeleton shell. The remaining panes (Attention queue, ready-for-agent
+ * pool) arrive in later slices; so far this aggregates open issues (#5) and
+ * recent Agent runs (#10) across every Registry repo, grouped by repo, gated on
+ * the Viewer's identity (ADR-0001).
  */
 const registry = loadRegistry();
 
@@ -33,8 +34,9 @@ export function App() {
           <AuthPanel />
         </div>
         {status === "authenticated" && (
-          <div className="mx-auto mt-10 max-w-md">
+          <div className="mx-auto mt-10 flex max-w-md flex-col gap-12">
             <RegistryIssues token={token} repos={registry} />
+            <RegistryRuns token={token} repos={registry} />
           </div>
         )}
       </div>
