@@ -1,0 +1,14 @@
+@import "tailwindcss";
+
+/* Brand palette — see docs/brand.md. Colour is semantic: warm = needs a human,
+   cool = calm/handled. */
+@theme {
+  --color-sand: #e9dcc3;
+  --color-deep-sea: #0b4f6c;
+  --color-tide-teal: #1b998b;
+  --color-sky: #a9d6e5;
+  --color-coral: #ff8c61;
+  --color-driftwood: #8a8580;
+
+  --font-sans: "Inter", ui-sans-serif, system-ui, sans-serif;
+}

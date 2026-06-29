@@ -1,6 +1,7 @@
 node_modules/
 dist/
 *.log
+*.tsbuildinfo
 .DS_Store
 
 # Sandcastle local artifacts (see .sandcastle/.gitignore for the rest)
