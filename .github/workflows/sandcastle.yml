@@ -1,0 +1,81 @@
+name: Sandcastle (autonomous agent)
+
+# Headless Sandcastle loop. This is the engine behind Beachfront's "agents running"
+# view (see docs/adr/0006). It drains `ready-for-agent` issues and opens a PR per run.
+#
+# Required repo Secret:
+#   CLAUDE_CODE_OAUTH_TOKEN  (run `claude setup-token` locally and paste the result)
+#   — or set ANTHROPIC_API_KEY instead and swap the env line below.
+# GitHub access uses the built-in GITHUB_TOKEN — no PAT needed.
+
+on:
+  workflow_dispatch: {}
+  issues:
+    types: [labeled]
+  # Enable autonomous cadence ONLY after a manual dispatch run has been verified
+  # in this repo. Uncomment to let it self-drive (every 6h shown here — tune it):
+  # schedule:
+  #   - cron: "0 */6 * * *"
+
+# Never run two loops at once against the same repo.
+concurrency:
+  group: sandcastle
+  cancel-in-progress: false
+
+permissions:
+  contents: write
+  issues: write
+  pull-requests: write
+
+jobs:
+  run:
+    # For the issues trigger, only react to the ready-for-agent label.
+    if: ${{ github.event_name != 'issues' || github.event.label.name == 'ready-for-agent' }}
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - run: npm ci
+
+      - name: Write Sandcastle env from secrets
+        env:
+          CLAUDE_CODE_OAUTH_TOKEN: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          mkdir -p .sandcastle
+          {
+            echo "CLAUDE_CODE_OAUTH_TOKEN=${CLAUDE_CODE_OAUTH_TOKEN}"
+            echo "GH_TOKEN=${GH_TOKEN}"
+          } > .sandcastle/.env
+
+      - name: Build the sandbox image
+        run: npx @ai-hero/sandcastle docker build-image
+
+      - name: Run the loop
+        env:
+          CI: "true"
+        run: npm run sandcastle
+
+      - name: Open a PR if the loop produced changes
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          git config user.name "sandcastle[bot]"
+          git config user.email "sandcastle@users.noreply.github.com"
+          if git diff --quiet origin/main; then
+            echo "No changes produced by the loop — nothing to PR."
+            exit 0
+          fi
+          BRANCH="sandcastle/auto-${GITHUB_RUN_ID}"
+          git switch -c "$BRANCH"
+          git push origin "$BRANCH"
+          gh pr create --base main --head "$BRANCH" \
+            --title "Sandcastle: automated work from run ${GITHUB_RUN_ID}" \
+            --body "Automated by the headless Sandcastle loop. Review before merging. Closing references in the commit body will close their issues on merge."

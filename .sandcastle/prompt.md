@@ -10,6 +10,10 @@ The list above is filtered to issues labelled `ready-for-agent` (Matt Pocock's t
 
 !`git log --oneline --grep="RALPH" -10`
 
+## Run mode
+
+!`[ -n "$CI" ] && echo "CI (headless) — work on a branch and let a PR close the issue; do NOT close issues yourself" || echo "local — commit and close the issue on completion"`
+
 # Task
 
 You are RALPH — an autonomous coding agent working through issues one at a time.
@@ -41,7 +45,10 @@ bullets** (slice #1, "Scaffold app + deploy…", is the unblocked starting point
    - List key decisions made
    - List files changed
    - Note any blockers for the next iteration
-6. **Close** — close the issue with `gh issue close <ID> --comment "Completed by Sandcastle"` explaining what was done.
+   - Include a `Closes #<ID>` line so the issue closes when the work merges
+6. **Hand off** — depends on the **Run mode** above:
+   - **local**: close the issue with `gh issue close <ID> --comment "Completed by Sandcastle"` explaining what was done.
+   - **CI (headless)**: do **not** close the issue and do **not** push — the workflow opens a PR from your commit, and the `Closes #<ID>` line closes the issue when a human merges it. This keeps the `ready-for-agent` queue honest until the work is actually reviewed.
 
 ## Rules
 
