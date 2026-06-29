@@ -16,6 +16,17 @@ vi.mock("./issues.ts", async () => {
   };
 });
 
+const fetchTriageMapping = vi.fn();
+vi.mock("./triageMapping.ts", async () => {
+  const actual = await vi.importActual<typeof import("./triageMapping.ts")>(
+    "./triageMapping.ts",
+  );
+  return {
+    ...actual,
+    fetchTriageMapping: (...a: unknown[]) => fetchTriageMapping(...a),
+  };
+});
+
 const REPOS: RepoRef[] = [
   { owner: "alpha", repo: "one" },
   { owner: "beta", repo: "two" },
@@ -32,7 +43,11 @@ function issue(number: number, title: string) {
 }
 
 describe("RegistryIssues", () => {
-  beforeEach(() => fetchOpenIssues.mockReset());
+  beforeEach(() => {
+    fetchOpenIssues.mockReset();
+    fetchTriageMapping.mockReset();
+    fetchTriageMapping.mockResolvedValue(null);
+  });
 
   it("renders issues from every accessible repo, grouped by repo", async () => {
     fetchOpenIssues.mockImplementation((_token: string, repo?: RepoRef) =>
@@ -72,6 +87,25 @@ describe("RegistryIssues", () => {
     await waitFor(() =>
       expect(screen.getByText(/skipped 1 repo/i)).toBeInTheDocument(),
     );
+  });
+
+  it("badges issues with canonical roles from each repo's Mapping", async () => {
+    const { defaultTriageMapping } = await vi.importActual<
+      typeof import("../triage/mapping.ts")
+    >("../triage/mapping.ts");
+    fetchOpenIssues.mockResolvedValue([
+      {
+        ...issue(1, "Roled issue"),
+        labels: [{ name: "ready-for-agent", color: "1b998b" }],
+      },
+    ]);
+    fetchTriageMapping.mockResolvedValue(defaultTriageMapping());
+
+    renderWithProviders(
+      <RegistryIssues token="t" repos={[{ owner: "alpha", repo: "one" }]} />,
+    );
+
+    expect(await screen.findAllByText("ready-for-agent")).not.toHaveLength(0);
   });
 
   it("shows a calm empty state for a repo with no open issues", async () => {
