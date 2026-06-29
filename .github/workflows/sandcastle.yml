@@ -12,10 +12,10 @@ on:
   workflow_dispatch: {}
   issues:
     types: [labeled]
-  # Enable autonomous cadence ONLY after a manual dispatch run has been verified
-  # in this repo. Uncomment to let it self-drive (every 6h shown here — tune it):
-  # schedule:
-  #   - cron: "0 */6 * * *"
+  # Autonomous cadence (verified end-to-end). Each run drains one ready-for-agent
+  # issue and opens a PR; the in-progress label stops re-picking. Tune the cron.
+  schedule:
+    - cron: "0 */6 * * *"
 
 # Never run two loops at once against the same repo.
 concurrency:

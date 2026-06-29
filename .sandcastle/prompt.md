@@ -12,7 +12,7 @@ The list above is filtered to issues labelled `ready-for-agent` (Matt Pocock's t
 
 ## Run mode
 
-!`[ -n "$CI" ] && echo "CI (headless) — work on a branch and let a PR close the issue; do NOT close issues yourself" || echo "local — commit and close the issue on completion"`
+!`[ -n "$CI" ] && echo "CI (headless) — after committing, move the issue ready-for-agent → in-progress; do NOT close it (its PR closes it on merge)" || echo "local — commit and close the issue on completion"`
 
 # Task
 
@@ -48,7 +48,7 @@ bullets** (slice #1, "Scaffold app + deploy…", is the unblocked starting point
    - Include a `Closes #<ID>` line so the issue closes when the work merges
 6. **Hand off** — depends on the **Run mode** above:
    - **local**: close the issue with `gh issue close <ID> --comment "Completed by Sandcastle"` explaining what was done.
-   - **CI (headless)**: do **not** close the issue and do **not** push — the workflow opens a PR from your commit, and the `Closes #<ID>` line closes the issue when a human merges it. This keeps the `ready-for-agent` queue honest until the work is actually reviewed.
+   - **CI (headless)**: do **not** close the issue and do **not** push. After committing, run `gh issue edit <ID> --remove-label ready-for-agent --add-label in-progress` so the loop won't pick this issue again while its PR is open. The workflow opens a PR from your commit; its `Closes #<ID>` line closes the issue when a human merges it.
 
 ## Rules
 
