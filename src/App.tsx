@@ -1,5 +1,6 @@
 import { AuthPanel } from "./auth/AuthPanel.tsx";
 import { useAuthContext } from "./auth/AuthContext.tsx";
+import { AgentRuns } from "./github/AgentRuns.tsx";
 import { RegistryIssues } from "./github/RegistryIssues.tsx";
 import { LinkForm } from "./link/LinkForm.tsx";
 import { loadRegistry } from "./registry/registry.ts";
@@ -37,6 +38,15 @@ export function App() {
           <>
             <div className="mx-auto mt-10 max-w-md">
               <RegistryIssues token={token} repos={registry} />
+            </div>
+            <div className="mx-auto mt-10 flex max-w-md flex-col gap-8">
+              {registry.map((repo) => (
+                <AgentRuns
+                  key={`${repo.owner}/${repo.repo}`}
+                  token={token}
+                  repo={repo}
+                />
+              ))}
             </div>
             <div className="mx-auto mt-10 max-w-sm">
               <LinkForm token={token} repos={registry} linkedBy={viewer.login} />
