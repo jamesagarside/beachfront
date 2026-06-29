@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { GENERATE_TOKEN_URL } from "./token.ts";
-import { useAuth } from "./useAuth.ts";
+import { useAuthContext } from "./AuthContext.tsx";
 
 /**
  * The Viewer's sign-in surface. PAT mode is always available (ADR-0001): paste
@@ -8,7 +8,7 @@ import { useAuth } from "./useAuth.ts";
  * a later, opt-in slice.
  */
 export function AuthPanel() {
-  const { viewer, status, error, signIn, signOut } = useAuth();
+  const { viewer, status, error, signIn, signOut } = useAuthContext();
   const [draft, setDraft] = useState("");
 
   if (status === "authenticated" && viewer) {

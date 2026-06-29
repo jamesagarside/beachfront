@@ -1,6 +1,10 @@
-import { fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { fireEvent, screen, waitFor } from "@testing-library/react";
+import type { ReactElement } from "react";
 import { afterEach, beforeEach, vi } from "vitest";
+import { renderWithProviders } from "../test/render.tsx";
 import { AuthPanel } from "./AuthPanel.tsx";
+
+const render = (ui: ReactElement) => renderWithProviders(ui);
 
 describe("AuthPanel", () => {
   beforeEach(() => localStorage.clear());
