@@ -1,11 +1,16 @@
 import { AuthPanel } from "./auth/AuthPanel.tsx";
+import { useAuthContext } from "./auth/AuthContext.tsx";
+import { configuredRepo } from "./config.ts";
+import { IssueList } from "./github/IssueList.tsx";
 
 /**
- * Walking-skeleton shell. The real panes (Attention queue, ready-for-agent pool,
- * Agent runs) arrive in later slices; for now this proves build → deploy → serve
- * and gates the view on the Viewer's GitHub identity (ADR-0001).
+ * Walking-skeleton shell. The full panes (Attention queue, ready-for-agent pool,
+ * Agent runs) arrive in later slices; this slice adds the first aggregation —
+ * one configured repo's open issues — gated on the Viewer's identity (ADR-0001).
  */
 export function App() {
+  const { token, status } = useAuthContext();
+
   return (
     <main className="min-h-screen bg-sand text-deep-sea font-sans flex items-center justify-center p-8">
       <div className="w-full max-w-xl text-center">
@@ -24,6 +29,11 @@ export function App() {
         <div className="mx-auto mt-10 max-w-sm text-left">
           <AuthPanel />
         </div>
+        {status === "authenticated" && (
+          <div className="mx-auto mt-10 max-w-md">
+            <IssueList token={token} repo={configuredRepo()} />
+          </div>
+        )}
       </div>
     </main>
   );
