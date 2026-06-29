@@ -1,0 +1,91 @@
+name: Auto-merge (gated by mechanical allowlist)
+
+# Enables GitHub-native auto-merge for ONLY the mechanically-safe PRs defined in
+# docs/adr/0007. Safety is auditable facts — checks + paths + identity — never an AI's
+# opinion of "triviality". All three conditions must hold or the PR waits for a human:
+#
+#   1. Required checks green — enforced by branch protection (#43); GitHub-native
+#      auto-merge waits for the #42 contexts (typecheck/test/build) before completing.
+#   2. Every changed path is allowlisted — Markdown only, minus the governance denylist
+#      (docs/brand.md, docs/adr/**, CONTEXT.md, docs/agents/**).
+#   3. Author/label gate — the PR author is the Beachfront App (beachfront-agent[bot]),
+#      OR a human applied the `automerge-safe` label (the one way to opt a src/ PR in).
+#
+# If conditions 2 or 3 fail this workflow does nothing; if they pass it enables native
+# auto-merge and GitHub completes the merge once condition 1 (required checks) is green.
+#
+# Repo prerequisites (provisioned by scripts/beachfront-onboard.sh):
+#   - "Allow auto-merge" enabled in repo settings (allow_auto_merge=true)
+#   - Branch protection with required status checks on the default branch (#43)
+#
+# Uses `pull_request` (not pull_request_target): the loop's PRs come from same-repo
+# `sandcastle/auto-*` branches, so GITHUB_TOKEN is write-scoped and no PR code is run
+# in a privileged context. Fork PRs get a read-only token and are simply left for a human.
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened, labeled, ready_for_review]
+
+permissions:
+  contents: write
+  pull-requests: write
+
+concurrency:
+  group: automerge-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+jobs:
+  gate:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Evaluate the mechanical gate and enable auto-merge if safe
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          REPO: ${{ github.repository }}
+          PR: ${{ github.event.pull_request.number }}
+          AUTHOR: ${{ github.event.pull_request.user.login }}
+          # All Beachfront instances share one App, so this login is constant; a repo
+          # variable lets an instance with its own App override it without editing the file.
+          APP_LOGIN: ${{ vars.BEACHFRONT_APP_BOT_LOGIN || 'beachfront-agent[bot]' }}
+          LABELS: ${{ join(github.event.pull_request.labels.*.name, ',') }}
+        run: |
+          set -euo pipefail
+
+          # --- Condition 3: author/label gate ----------------------------------------
+          gate_ok=false; why=""
+          if [ "$AUTHOR" = "$APP_LOGIN" ]; then gate_ok=true; why="author=$AUTHOR"; fi
+          case ",$LABELS," in
+            *,automerge-safe,*) gate_ok=true; why="${why:+$why; }automerge-safe label" ;;
+          esac
+          if [ "$gate_ok" != true ]; then
+            echo "::notice::Author/label gate not met (author=$AUTHOR, labels=[$LABELS]). Human-gated."
+            exit 0
+          fi
+
+          # --- Condition 2: path allowlist (Markdown only, minus governance denylist) --
+          files="$(gh pr diff "$PR" --repo "$REPO" --name-only)"
+          if [ -z "$files" ]; then
+            echo "::notice::No changed files detected — nothing to auto-merge."
+            exit 0
+          fi
+          blocked=""
+          while IFS= read -r f; do
+            [ -z "$f" ] && continue
+            case "$f" in
+              *.md|*.MD|*.markdown) : ;;                       # Markdown — candidate
+              *) blocked="${blocked}  - $f (non-Markdown)"$'\n'; continue ;;
+            esac
+            case "$f" in                                       # governance denylist
+              docs/brand.md|CONTEXT.md|docs/adr/*|docs/agents/*)
+                blocked="${blocked}  - $f (human-governed)"$'\n' ;;
+            esac
+          done <<< "$files"
+          if [ -n "$blocked" ]; then
+            echo "::notice::Diff is outside the Markdown allowlist. Human-gated. Offending paths:"
+            printf '%s' "$blocked"
+            exit 0
+          fi
+
+          # --- All mechanical conditions hold: enable native auto-merge ---------------
+          echo "::notice::Mechanically safe ($why; Markdown-only diff). Enabling auto-merge."
+          gh pr merge "$PR" --repo "$REPO" --auto --squash
