@@ -24,6 +24,17 @@ vi.mock("./triageMapping.ts", async () => {
   };
 });
 
+const fetchRepoCapability = vi.fn();
+vi.mock("./editIssue.ts", async () => {
+  const actual = await vi.importActual<typeof import("./editIssue.ts")>(
+    "./editIssue.ts",
+  );
+  return {
+    ...actual,
+    fetchRepoCapability: (...a: unknown[]) => fetchRepoCapability(...a),
+  };
+});
+
 const REPO = { owner: "jamesagarside", repo: "beachfront" };
 
 function makeIssue(labels: string[]) {
@@ -39,6 +50,7 @@ function makeIssue(labels: string[]) {
 
 beforeEach(() => {
   fetchTriageMapping.mockResolvedValue(null);
+  fetchRepoCapability.mockResolvedValue(false);
 });
 
 describe("IssueList", () => {
@@ -117,6 +129,35 @@ describe("IssueList classification", () => {
 
     expect(await screen.findByText("ready-for-agent")).toBeInTheDocument();
     expect(screen.getByText("bug")).toBeInTheDocument();
+  });
+});
+
+describe("IssueList editing (#17)", () => {
+  it("offers in-place editing when the token can write", async () => {
+    fetchOpenIssues.mockResolvedValue([makeIssue(["enhancement", "needs-triage"])]);
+    fetchTriageMapping.mockResolvedValue(defaultTriageMapping());
+    fetchRepoCapability.mockResolvedValue(true);
+
+    renderWithProviders(<IssueList token="t" repo={REPO} />);
+
+    expect(
+      await screen.findByRole("button", { name: /set role/i }),
+    ).toBeInTheDocument();
+  });
+
+  it("pivots to a GitHub deep link for a read-only token", async () => {
+    fetchOpenIssues.mockResolvedValue([makeIssue(["enhancement", "needs-triage"])]);
+    fetchTriageMapping.mockResolvedValue(defaultTriageMapping());
+    fetchRepoCapability.mockResolvedValue(false);
+
+    renderWithProviders(<IssueList token="t" repo={REPO} />);
+
+    expect(
+      await screen.findByRole("link", { name: /edit on github/i }),
+    ).toBeInTheDocument();
+    expect(
+      screen.queryByRole("button", { name: /set role/i }),
+    ).not.toBeInTheDocument();
   });
 });
 

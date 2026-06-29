@@ -1,9 +1,19 @@
 import type { RepoRef } from "../config.ts";
 import { classify } from "../triage/classify.ts";
 import type { TriageMapping } from "../triage/mapping.ts";
+import { IssueTriageEditor } from "./IssueTriageEditor.tsx";
 import { GitHubAuthError, type Issue } from "./issues.ts";
 import { useOpenIssues } from "./useIssues.ts";
+import { useRepoCapability } from "./useRepoCapability.ts";
 import { useTriageMapping } from "./useTriageMapping.ts";
+
+/** Context that lets an {@link IssueRow} offer in-place triage editing (#17). */
+export interface IssueEditing {
+  token: string;
+  repo: RepoRef;
+  /** Whether the Viewer's token can write — the capability gate (ADR-0004). */
+  canWrite: boolean;
+}
 
 /**
  * The first aggregation pane: one configured repo's open issues, each with its
@@ -19,6 +29,11 @@ export function IssueList({
 }) {
   const { data, isPending, isError, error } = useOpenIssues(token, repo);
   const { data: mapping } = useTriageMapping(token, repo);
+  const { data: canWrite } = useRepoCapability(token, repo);
+
+  const editing: IssueEditing | null = token
+    ? { token, repo, canWrite: canWrite ?? false }
+    : null;
 
   return (
     <section aria-labelledby="issues-heading" className="text-left">
@@ -48,7 +63,12 @@ export function IssueList({
       {data && data.length > 0 && (
         <ul className="mt-3 flex flex-col gap-3">
           {data.map((issue) => (
-            <IssueRow key={issue.number} issue={issue} mapping={mapping ?? null} />
+            <IssueRow
+              key={issue.number}
+              issue={issue}
+              mapping={mapping ?? null}
+              editing={editing}
+            />
           ))}
         </ul>
       )}
@@ -66,9 +86,11 @@ export function IssueList({
 export function IssueRow({
   issue,
   mapping = null,
+  editing = null,
 }: {
   issue: Issue;
   mapping?: TriageMapping | null;
+  editing?: IssueEditing | null;
 }) {
   return (
     <li className="rounded border border-deep-sea/15 bg-white/50 px-3 py-2">
@@ -90,6 +112,15 @@ export function IssueRow({
           opened {formatAge(issue.createdAt)}
         </span>
       </div>
+      {editing && (
+        <IssueTriageEditor
+          token={editing.token}
+          repo={editing.repo}
+          issue={issue}
+          mapping={mapping}
+          canWrite={editing.canWrite}
+        />
+      )}
     </li>
   );
 }
