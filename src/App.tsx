@@ -4,14 +4,15 @@ import { AgentRuns } from "./github/AgentRuns.tsx";
 import { AttentionQueue } from "./github/AttentionQueue.tsx";
 import { ReadyForAgentPool } from "./github/ReadyForAgentPool.tsx";
 import { RegistryIssues } from "./github/RegistryIssues.tsx";
+import { RunningAgentsSummary } from "./github/RunningAgentsSummary.tsx";
 import { LinkForm } from "./link/LinkForm.tsx";
 import { loadRegistry } from "./registry/registry.ts";
 
 /**
- * Walking-skeleton shell. It composes the cross-repo panes — the Attention
- * queue (#8), the ready-for-agent pool (#9), per-repo Agent runs (#10), and the
- * grouped open-issue list (#5) — over every Registry repo, gated on the Viewer's
- * identity (ADR-0001).
+ * Walking-skeleton shell. It composes the cross-repo panes — the running-agents
+ * summary (#11), the Attention queue (#8), the ready-for-agent pool (#9),
+ * per-repo Agent runs (#10), and the grouped open-issue list (#5) — over every
+ * Registry repo, gated on the Viewer's identity (ADR-0001).
  */
 const registry = loadRegistry();
 
@@ -38,6 +39,9 @@ export function App() {
         </div>
         {status === "authenticated" && token && viewer && (
           <>
+            <div className="mx-auto mt-10 max-w-md">
+              <RunningAgentsSummary token={token} repos={registry} />
+            </div>
             <div className="mx-auto mt-10 max-w-md">
               <AttentionQueue token={token} repos={registry} />
             </div>
