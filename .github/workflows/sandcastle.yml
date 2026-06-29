@@ -65,7 +65,7 @@ jobs:
           CI: "true"
         run: npm run sandcastle
 
-      - name: Open a PR if the loop produced changes
+      - name: Open a PR and move worked issues to in-progress
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
@@ -78,6 +78,18 @@ jobs:
           BRANCH="sandcastle/auto-${GITHUB_RUN_ID}"
           git switch -c "$BRANCH"
           git push origin "$BRANCH"
+          # Worked issues, from the agent's `Closes #N` commit lines.
+          ISSUES="$(git log origin/main..HEAD --format=%B | grep -oiE 'closes +#[0-9]+' | grep -oE '[0-9]+' | sort -u)"
+          # Put `Closes #N` in the PR BODY so the issue closes on merge under ANY merge
+          # method (a commit-only reference can be dropped by squash merges).
+          BODY="Automated by the headless Sandcastle loop. Review before merging."
+          for n in $ISSUES; do BODY="${BODY}"$'\n'"Closes #${n}"; done
           gh pr create --base main --head "$BRANCH" \
             --title "Sandcastle: automated work from run ${GITHUB_RUN_ID}" \
-            --body "Automated by the headless Sandcastle loop. Review before merging. Closing references in the commit body will close their issues on merge."
+            --body "$BODY"
+          # Move each worked issue out of the queue (host-side — never depends on the
+          # agent detecting CI). On merge, the PR body's `Closes #N` closes the issue.
+          for n in $ISSUES; do
+            echo "Marking #$n in-progress"
+            gh issue edit "$n" --remove-label ready-for-agent --add-label in-progress || true
+          done

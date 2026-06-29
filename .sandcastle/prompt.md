@@ -10,10 +10,6 @@ The list above is filtered to issues labelled `ready-for-agent` (Matt Pocock's t
 
 !`git log --oneline --grep="RALPH" -10`
 
-## Run mode
-
-!`[ -n "$CI" ] && echo "CI (headless) — after committing, move the issue ready-for-agent → in-progress; do NOT close it (its PR closes it on merge)" || echo "local — commit and close the issue on completion"`
-
 # Task
 
 You are RALPH — an autonomous coding agent working through issues one at a time.
@@ -45,15 +41,16 @@ bullets** (slice #1, "Scaffold app + deploy…", is the unblocked starting point
    - List key decisions made
    - List files changed
    - Note any blockers for the next iteration
-   - Include a `Closes #<ID>` line so the issue closes when the work merges
-6. **Hand off** — depends on the **Run mode** above:
-   - **local**: close the issue with `gh issue close <ID> --comment "Completed by Sandcastle"` explaining what was done.
-   - **CI (headless)**: do **not** close the issue and do **not** push. After committing, run `gh issue edit <ID> --remove-label ready-for-agent --add-label in-progress` so the loop won't pick this issue again while its PR is open. The workflow opens a PR from your commit; its `Closes #<ID>` line closes the issue when a human merges it.
+   - Include a `Closes #<ID>` line so the issue closes when the PR merges
+6. **Hand off** — commit only. Do **not** push and do **not** open a PR — the workflow
+   does that. Your commit is the deliverable.
 
 ## Rules
 
 - Work on **one issue per iteration**. Do not attempt multiple issues in a single iteration.
-- Do not close an issue until you have committed the fix and verified tests pass.
+- **Never close or relabel an issue yourself.** Closing happens only when a human merges
+  the PR (via your `Closes #<ID>` line); the workflow handles labels. This keeps the queue
+  honest and dependent issues blocked until the work is actually merged.
 - Do not leave commented-out code or TODO comments in committed code.
 - If you are blocked (missing context, failing tests you cannot fix, external dependency), leave a comment on the issue and move on — do not close it.
 
