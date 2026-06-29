@@ -1,28 +1,37 @@
 import { useState } from "react";
-import type { RepoRef } from "../config.ts";
+import { configuredRepo, type RepoRef } from "../config.ts";
 import type { RegistryRepo } from "../registry/registry.ts";
+import { openLinkPr } from "./openLink.ts";
 import { validateLink } from "./validateLink.ts";
 
 /**
- * Capture-and-validate step of the UI Link flow (#14, ADR-0002): the Viewer
- * types an `owner/repo`, and Beachfront confirms — using the Viewer's own token
- * — that it's well-formed, not already linked, and actually accessible before
- * the PR-opening step (#15) takes over. A validated repo surfaces a "ready to
- * link" state that the next slice hangs the open-PR action off; for now it just
- * proves the candidate is sound.
+ * The UI Link flow (ADR-0002, the "UI (pull)" producer). The Viewer types an
+ * `owner/repo`; Beachfront first confirms — using the Viewer's own token — that
+ * it's well-formed, not already linked, and accessible (#14), then opens the
+ * linking PR against the Instance with that same token (#15). A read-only token
+ * passes validation but is told clearly at the open-PR step that linking needs
+ * write scope.
  */
 type Phase =
   | { kind: "idle" }
   | { kind: "validating" }
   | { kind: "valid"; ref: RepoRef }
+  | { kind: "linking"; ref: RepoRef }
+  | { kind: "linked"; ref: RepoRef; url: string }
   | { kind: "error"; message: string };
 
 export function LinkForm({
   token,
   repos,
+  linkedBy,
+  instance = configuredRepo(),
 }: {
   token: string;
   repos: RegistryRepo[];
+  /** The Viewer's login, recorded as who opened the link. */
+  linkedBy: string;
+  /** Instance the PR targets; defaults to the configured Instance repo. */
+  instance?: RepoRef;
 }) {
   const [slug, setSlug] = useState("");
   const [phase, setPhase] = useState<Phase>({ kind: "idle" });
@@ -43,6 +52,20 @@ export function LinkForm({
     }
   }
 
+  async function handleLink(ref: RepoRef) {
+    setPhase({ kind: "linking", ref });
+    try {
+      const { url } = await openLinkPr(token, ref, instance, { linkedBy });
+      setPhase({ kind: "linked", ref, url });
+    } catch (err: unknown) {
+      setPhase({
+        kind: "error",
+        message:
+          err instanceof Error ? err.message : "Couldn't open the linking PR.",
+      });
+    }
+  }
+
   return (
     <form onSubmit={handleSubmit} className="flex flex-col gap-3 text-left">
       <label htmlFor="link-repo" className="text-deep-sea">
@@ -57,7 +80,7 @@ export function LinkForm({
         value={slug}
         onChange={(e) => {
           setSlug(e.target.value);
-          if (phase.kind !== "idle" && phase.kind !== "validating") {
+          if (phase.kind === "valid" || phase.kind === "error" || phase.kind === "linked") {
             setPhase({ kind: "idle" });
           }
         }}
@@ -71,9 +94,34 @@ export function LinkForm({
       >
         {phase.kind === "validating" ? "Validating…" : "Validate"}
       </button>
-      {phase.kind === "valid" && (
+      {(phase.kind === "valid" || phase.kind === "linking") && (
+        <div className="flex flex-col gap-2">
+          <p className="text-sm text-tide-teal">
+            Ready to link <strong>{phase.ref.owner}/{phase.ref.repo}</strong>.
+          </p>
+          <button
+            type="button"
+            disabled={phase.kind === "linking"}
+            onClick={() => handleLink(phase.ref)}
+            className="self-start rounded bg-tide-teal px-4 py-2 text-white disabled:opacity-60"
+          >
+            {phase.kind === "linking" ? "Opening PR…" : "Link — open PR"}
+          </button>
+        </div>
+      )}
+      {phase.kind === "linked" && (
         <p className="text-sm text-tide-teal">
-          Ready to link <strong>{phase.ref.owner}/{phase.ref.repo}</strong>.
+          Linking PR opened for{" "}
+          <strong>{phase.ref.owner}/{phase.ref.repo}</strong>.{" "}
+          <a
+            href={phase.url}
+            target="_blank"
+            rel="noreferrer"
+            className="underline"
+          >
+            View the pull request
+          </a>
+          .
         </p>
       )}
       {phase.kind === "error" && (
