@@ -1,6 +1,7 @@
 import { AuthPanel } from "./auth/AuthPanel.tsx";
 import { useAuthContext } from "./auth/AuthContext.tsx";
 import { RegistryIssues } from "./github/RegistryIssues.tsx";
+import { LinkForm } from "./link/LinkForm.tsx";
 import { loadRegistry } from "./registry/registry.ts";
 
 /**
@@ -32,10 +33,15 @@ export function App() {
         <div className="mx-auto mt-10 max-w-sm text-left">
           <AuthPanel />
         </div>
-        {status === "authenticated" && (
-          <div className="mx-auto mt-10 max-w-md">
-            <RegistryIssues token={token} repos={registry} />
-          </div>
+        {status === "authenticated" && token && (
+          <>
+            <div className="mx-auto mt-10 max-w-md">
+              <RegistryIssues token={token} repos={registry} />
+            </div>
+            <div className="mx-auto mt-10 max-w-sm">
+              <LinkForm token={token} repos={registry} />
+            </div>
+          </>
         )}
       </div>
     </main>
