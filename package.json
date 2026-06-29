@@ -1,0 +1,14 @@
+{
+  "name": "beachfront",
+  "private": true,
+  "version": "0.0.0",
+  "type": "module",
+  "description": "A single pane of glass over Sandcastle-enabled repos.",
+  "scripts": {
+    "sandcastle": "tsx .sandcastle/main.mts"
+  },
+  "devDependencies": {
+    "@ai-hero/sandcastle": "^0.10.0",
+    "tsx": "^4.19.0"
+  }
+}

@@ -1,0 +1,9 @@
+node_modules/
+dist/
+*.log
+.DS_Store
+
+# Sandcastle local artifacts (see .sandcastle/.gitignore for the rest)
+.sandcastle/.env
+.sandcastle/logs/
+.sandcastle/worktrees/
