@@ -41,6 +41,7 @@ declare -A LABELS=(
   [needs-triage]="FF8C61|Maintainer needs to evaluate"
   [needs-info]="A9D6E5|Waiting on reporter for more information"
   [ready-for-agent]="1B998B|Fully specified, ready for an AFK agent"
+  [in-progress]="6F42C1|An agent is working this; a PR is open"
   [ready-for-human]="FFB84D|Needs human implementation"
   [wontfix]="8A8580|Will not be actioned"
   [bug]="D73A4A|Something is broken"

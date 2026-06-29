@@ -24,6 +24,11 @@ Autonomous runs **open a pull request** for review rather than pushing to `main`
 human merge stays the gate. The Agent runs this produces are exactly what Beachfront's
 Agent-run view surfaces (Agent run = Actions workflow run, per ADR-0004).
 
+When a run opens its PR it moves the issue `ready-for-agent` → **`in-progress`** (an
+operational marker outside Matt's triage vocabulary), so the loop never re-picks an
+issue whose PR is already open. The PR's `Closes #N` returns it to a closed state on
+merge; an abandoned (closed-unmerged) PR should restore `ready-for-agent`.
+
 This is distinct from the on-demand `beachfront-skill.yml` of ADR-0004: that is a
 Viewer triggering *one named Skill* on *one issue*; this is the *standing loop* that
 drains the `ready-for-agent` backlog continuously.
