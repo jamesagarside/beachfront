@@ -2,7 +2,7 @@
 
 ## Status
 
-proposed
+accepted
 
 ## Context
 
@@ -11,7 +11,7 @@ private) Instance, which "consumes from" the Tool repo. Options for "consume":
 publish an npm package / reusable Action the Instance depends on, or distribute the
 whole app as a template the Instance is a copy of.
 
-## Decision (proposed)
+## Decision
 
 Distribute Beachfront as a **GitHub template repository**. A new Instance is created
 via "Use this template" (James's is a private copy). Personal data lives only in the
