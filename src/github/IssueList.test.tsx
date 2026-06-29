@@ -1,8 +1,9 @@
-import { screen, waitFor } from "@testing-library/react";
+import { render, screen, waitFor } from "@testing-library/react";
 import { vi } from "vitest";
 import { renderWithProviders } from "../test/render.tsx";
-import { formatAge, IssueList } from "./IssueList.tsx";
+import { formatAge, IssueList, IssueRow } from "./IssueList.tsx";
 import { GitHubAuthError } from "./issues.ts";
+import { defaultTriageMapping } from "../triage/mapping.ts";
 
 const fetchOpenIssues = vi.fn();
 vi.mock("./issues.ts", async () => {
@@ -12,7 +13,32 @@ vi.mock("./issues.ts", async () => {
   return { ...actual, fetchOpenIssues: (...a: unknown[]) => fetchOpenIssues(...a) };
 });
 
+const fetchTriageMapping = vi.fn();
+vi.mock("./triageMapping.ts", async () => {
+  const actual = await vi.importActual<typeof import("./triageMapping.ts")>(
+    "./triageMapping.ts",
+  );
+  return {
+    ...actual,
+    fetchTriageMapping: (...a: unknown[]) => fetchTriageMapping(...a),
+  };
+});
+
 const REPO = { owner: "jamesagarside", repo: "beachfront" };
+
+function makeIssue(labels: string[]) {
+  return {
+    number: 7,
+    title: "Classify issues",
+    url: "https://github.com/o/r/issues/7",
+    createdAt: "2026-06-01T00:00:00Z",
+    labels: labels.map((name) => ({ name, color: "1b998b" })),
+  };
+}
+
+beforeEach(() => {
+  fetchTriageMapping.mockResolvedValue(null);
+});
 
 describe("IssueList", () => {
   it("renders each issue's number, title, label and age", async () => {
@@ -47,6 +73,49 @@ describe("IssueList", () => {
     await waitFor(() =>
       expect(screen.getByRole("alert")).toHaveTextContent(/token rejected/i),
     );
+  });
+});
+
+describe("IssueRow role badges", () => {
+  const mapping = defaultTriageMapping();
+
+  it("shows the canonical category and state roles when a Mapping is known", () => {
+    render(<IssueRow issue={makeIssue(["bug", "ready-for-agent"])} mapping={mapping} />);
+    expect(screen.getByText("bug")).toBeInTheDocument();
+    expect(screen.getByText("ready-for-agent")).toBeInTheDocument();
+  });
+
+  it("flags an untriaged issue (no recognized triage label)", () => {
+    render(<IssueRow issue={makeIssue(["documentation"])} mapping={mapping} />);
+    expect(screen.getByText(/untriaged/i)).toBeInTheDocument();
+  });
+
+  it("flags an issue whose labels resolve to conflicting roles", () => {
+    render(
+      <IssueRow
+        issue={makeIssue(["ready-for-agent", "needs-triage"])}
+        mapping={mapping}
+      />,
+    );
+    expect(screen.getByText(/conflicting roles/i)).toBeInTheDocument();
+  });
+
+  it("falls back to raw labels when the repo has no Mapping", () => {
+    render(<IssueRow issue={makeIssue(["enhancement"])} mapping={null} />);
+    expect(screen.getByText("enhancement")).toBeInTheDocument();
+    expect(screen.queryByText(/untriaged/i)).not.toBeInTheDocument();
+  });
+});
+
+describe("IssueList classification", () => {
+  it("badges issues with their canonical roles from the repo's Mapping", async () => {
+    fetchOpenIssues.mockResolvedValue([makeIssue(["bug", "ready-for-agent"])]);
+    fetchTriageMapping.mockResolvedValue(defaultTriageMapping());
+
+    renderWithProviders(<IssueList token="t" repo={REPO} />);
+
+    expect(await screen.findByText("ready-for-agent")).toBeInTheDocument();
+    expect(screen.getByText("bug")).toBeInTheDocument();
   });
 });
 

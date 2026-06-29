@@ -38,7 +38,7 @@ export function RegistryIssues({
   );
 }
 
-function RepoSection({ repo, issues }: RepoIssues) {
+function RepoSection({ repo, issues, mapping }: RepoIssues) {
   const slug = `${repo.owner}/${repo.repo}`;
   const headingId = `repo-${repo.owner}-${repo.repo}`;
 
@@ -53,7 +53,7 @@ function RepoSection({ repo, issues }: RepoIssues) {
       ) : (
         <ul className="mt-3 flex flex-col gap-3">
           {issues.map((issue) => (
-            <IssueRow key={issue.number} issue={issue} />
+            <IssueRow key={issue.number} issue={issue} mapping={mapping} />
           ))}
         </ul>
       )}

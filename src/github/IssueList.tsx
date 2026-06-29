@@ -1,6 +1,9 @@
 import type { RepoRef } from "../config.ts";
+import { classify } from "../triage/classify.ts";
+import type { TriageMapping } from "../triage/mapping.ts";
 import { GitHubAuthError, type Issue } from "./issues.ts";
 import { useOpenIssues } from "./useIssues.ts";
+import { useTriageMapping } from "./useTriageMapping.ts";
 
 /**
  * The first aggregation pane: one configured repo's open issues, each with its
@@ -15,6 +18,7 @@ export function IssueList({
   repo: RepoRef;
 }) {
   const { data, isPending, isError, error } = useOpenIssues(token, repo);
+  const { data: mapping } = useTriageMapping(token, repo);
 
   return (
     <section aria-labelledby="issues-heading" className="text-left">
@@ -44,7 +48,7 @@ export function IssueList({
       {data && data.length > 0 && (
         <ul className="mt-3 flex flex-col gap-3">
           {data.map((issue) => (
-            <IssueRow key={issue.number} issue={issue} />
+            <IssueRow key={issue.number} issue={issue} mapping={mapping ?? null} />
           ))}
         </ul>
       )}
@@ -52,7 +56,20 @@ export function IssueList({
   );
 }
 
-export function IssueRow({ issue }: { issue: Issue }) {
+/**
+ * One issue row. When the repo's triage {@link TriageMapping} is known, each
+ * issue's labels are resolved to their canonical category and state roles
+ * (#7, ADR-0003) and shown as role badges, with the two non-happy states —
+ * untriaged and conflicting roles — flagged for attention. A repo with no
+ * Mapping degrades gracefully to its raw label chips.
+ */
+export function IssueRow({
+  issue,
+  mapping = null,
+}: {
+  issue: Issue;
+  mapping?: TriageMapping | null;
+}) {
   return (
     <li className="rounded border border-deep-sea/15 bg-white/50 px-3 py-2">
       <a
@@ -64,27 +81,79 @@ export function IssueRow({ issue }: { issue: Issue }) {
         <span className="text-deep-sea/50">#{issue.number}</span> {issue.title}
       </a>
       <div className="mt-1 flex flex-wrap items-center gap-2">
-        {issue.labels.map((label) => (
-          <span
-            key={label.name}
-            className="rounded-full border px-2 py-0.5 text-xs"
-            style={
-              label.color
-                ? {
-                    borderColor: `#${label.color}`,
-                    color: `#${label.color}`,
-                  }
-                : undefined
-            }
-          >
-            {label.name}
-          </span>
-        ))}
+        {mapping ? (
+          <RoleBadges issue={issue} mapping={mapping} />
+        ) : (
+          <RawLabels issue={issue} />
+        )}
         <span className="text-xs text-driftwood">
           opened {formatAge(issue.createdAt)}
         </span>
       </div>
     </li>
+  );
+}
+
+/** The repo's raw GitHub labels — the fallback when no Mapping is known. */
+function RawLabels({ issue }: { issue: Issue }) {
+  return (
+    <>
+      {issue.labels.map((label) => (
+        <span
+          key={label.name}
+          className="rounded-full border px-2 py-0.5 text-xs"
+          style={
+            label.color
+              ? { borderColor: `#${label.color}`, color: `#${label.color}` }
+              : undefined
+          }
+        >
+          {label.name}
+        </span>
+      ))}
+    </>
+  );
+}
+
+/** Canonical triage roles for an issue, resolved through the repo's Mapping. */
+function RoleBadges({
+  issue,
+  mapping,
+}: {
+  issue: Issue;
+  mapping: TriageMapping;
+}) {
+  const roles = classify(
+    issue.labels.map((label) => label.name),
+    mapping,
+  );
+
+  return (
+    <>
+      {roles.categoryRole && (
+        <span className="rounded-full border border-deep-sea/30 px-2 py-0.5 text-xs text-deep-sea/80">
+          {roles.categoryRole}
+        </span>
+      )}
+      {roles.stateRole && (
+        <span className="rounded-full border border-tide-teal/50 px-2 py-0.5 text-xs text-tide-teal">
+          {roles.stateRole}
+        </span>
+      )}
+      {roles.untriaged && (
+        <span className="rounded-full border border-coral/60 px-2 py-0.5 text-xs text-coral">
+          untriaged
+        </span>
+      )}
+      {roles.conflict && (
+        <span
+          role="status"
+          className="rounded-full border border-coral/60 px-2 py-0.5 text-xs text-coral"
+        >
+          conflicting roles
+        </span>
+      )}
+    </>
   );
 }
 
