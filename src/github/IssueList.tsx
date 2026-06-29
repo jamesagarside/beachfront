@@ -52,7 +52,7 @@ export function IssueList({
   );
 }
 
-function IssueRow({ issue }: { issue: Issue }) {
+export function IssueRow({ issue }: { issue: Issue }) {
   return (
     <li className="rounded border border-deep-sea/15 bg-white/50 px-3 py-2">
       <a
