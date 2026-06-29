@@ -4,7 +4,11 @@
   "version": "0.0.0",
   "type": "module",
   "description": "A single pane of glass over Sandcastle-enabled repos.",
+  "bin": {
+    "beachfront": "scripts/beachfront.mts"
+  },
   "scripts": {
+    "beachfront": "tsx scripts/beachfront.mts",
     "dev": "vite",
     "build": "tsc -b && vite build",
     "preview": "vite preview",

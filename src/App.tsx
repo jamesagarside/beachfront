@@ -13,7 +13,7 @@ import { loadRegistry } from "./registry/registry.ts";
 const registry = loadRegistry();
 
 export function App() {
-  const { token, status } = useAuthContext();
+  const { token, viewer, status } = useAuthContext();
 
   return (
     <main className="min-h-screen bg-sand text-deep-sea font-sans flex items-center justify-center p-8">
@@ -33,13 +33,13 @@ export function App() {
         <div className="mx-auto mt-10 max-w-sm text-left">
           <AuthPanel />
         </div>
-        {status === "authenticated" && token && (
+        {status === "authenticated" && token && viewer && (
           <>
             <div className="mx-auto mt-10 max-w-md">
               <RegistryIssues token={token} repos={registry} />
             </div>
             <div className="mx-auto mt-10 max-w-sm">
-              <LinkForm token={token} repos={registry} />
+              <LinkForm token={token} repos={registry} linkedBy={viewer.login} />
             </div>
           </>
         )}
