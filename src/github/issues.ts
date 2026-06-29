@@ -18,6 +18,8 @@ export interface Issue {
   url: string;
   labels: IssueLabel[];
   createdAt: string;
+  /** Comment count — the cheap proxy for reporter activity on `needs-info`. */
+  comments: number;
 }
 
 export class GitHubAuthError extends Error {}
@@ -44,6 +46,7 @@ export async function fetchOpenIssues(
         url: item.html_url,
         createdAt: item.created_at,
         labels: item.labels.map(normalizeLabel),
+        comments: item.comments ?? 0,
       }));
   } catch (err: unknown) {
     const status = (err as { status?: number }).status;

@@ -36,6 +36,7 @@ describe("fetchOpenIssues", () => {
           html_url: "https://github.com/o/r/issues/42",
           created_at: "2026-06-01T00:00:00Z",
           labels: [{ name: "bug", color: "ff8c61" }, "ready-for-agent"],
+          comments: 3,
         },
       ],
     });
@@ -52,6 +53,7 @@ describe("fetchOpenIssues", () => {
           { name: "bug", color: "ff8c61" },
           { name: "ready-for-agent", color: "" },
         ],
+        comments: 3,
       },
     ]);
   });
