@@ -11,7 +11,9 @@ name: Sandcastle (autonomous agent)
 on:
   workflow_dispatch: {}
   issues:
-    types: [labeled]
+    # labeled: an issue moves to ready-for-agent (e.g. via triage).
+    # opened:  an issue is created already ready-for-agent (e.g. via /to-issues).
+    types: [opened, labeled]
   # Autonomous cadence (verified end-to-end). Each run drains one ready-for-agent
   # issue and opens a PR; the in-progress label stops re-picking. Tune the cron.
   schedule:
@@ -29,8 +31,14 @@ permissions:
 
 jobs:
   run:
-    # For the issues trigger, only react to the ready-for-agent label.
-    if: ${{ github.event_name != 'issues' || github.event.label.name == 'ready-for-agent' }}
+    # Run for dispatch/schedule always; for issue events only when the issue is
+    # ready-for-agent — whether the label was just added or present at creation.
+    if: >-
+      ${{
+        github.event_name != 'issues' ||
+        (github.event.action == 'labeled' && github.event.label.name == 'ready-for-agent') ||
+        (github.event.action == 'opened' && contains(github.event.issue.labels.*.name, 'ready-for-agent'))
+      }}
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
