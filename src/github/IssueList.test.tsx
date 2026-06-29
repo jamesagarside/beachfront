@@ -33,6 +33,7 @@ function makeIssue(labels: string[]) {
     url: "https://github.com/o/r/issues/7",
     createdAt: "2026-06-01T00:00:00Z",
     labels: labels.map((name) => ({ name, color: "1b998b" })),
+    comments: 0,
   };
 }
 

@@ -1,6 +1,7 @@
 import { AuthPanel } from "./auth/AuthPanel.tsx";
 import { useAuthContext } from "./auth/AuthContext.tsx";
 import { AgentRuns } from "./github/AgentRuns.tsx";
+import { AttentionQueue } from "./github/AttentionQueue.tsx";
 import { RegistryIssues } from "./github/RegistryIssues.tsx";
 import { LinkForm } from "./link/LinkForm.tsx";
 import { loadRegistry } from "./registry/registry.ts";
@@ -36,6 +37,9 @@ export function App() {
         </div>
         {status === "authenticated" && token && viewer && (
           <>
+            <div className="mx-auto mt-10 max-w-md">
+              <AttentionQueue token={token} repos={registry} />
+            </div>
             <div className="mx-auto mt-10 max-w-md">
               <RegistryIssues token={token} repos={registry} />
             </div>
