@@ -1,13 +1,16 @@
 import { AuthPanel } from "./auth/AuthPanel.tsx";
 import { useAuthContext } from "./auth/AuthContext.tsx";
-import { configuredRepo } from "./config.ts";
-import { IssueList } from "./github/IssueList.tsx";
+import { RegistryIssues } from "./github/RegistryIssues.tsx";
+import { loadRegistry } from "./registry/registry.ts";
 
 /**
  * Walking-skeleton shell. The full panes (Attention queue, ready-for-agent pool,
- * Agent runs) arrive in later slices; this slice adds the first aggregation —
- * one configured repo's open issues — gated on the Viewer's identity (ADR-0001).
+ * Agent runs) arrive in later slices; this slice aggregates open issues across
+ * every Registry repo (#5), grouped by repo, gated on the Viewer's identity
+ * (ADR-0001).
  */
+const registry = loadRegistry();
+
 export function App() {
   const { token, status } = useAuthContext();
 
@@ -31,7 +34,7 @@ export function App() {
         </div>
         {status === "authenticated" && (
           <div className="mx-auto mt-10 max-w-md">
-            <IssueList token={token} repo={configuredRepo()} />
+            <RegistryIssues token={token} repos={registry} />
           </div>
         )}
       </div>
