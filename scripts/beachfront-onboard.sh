@@ -10,8 +10,10 @@
 #   3. The repo settings the headless loop depends on:
 #        - Actions may create pull requests
 #        - Actions default workflow permissions = write
-#   4. A PR adding .sandcastle/ + .github/workflows/sandcastle.yml (+ package.json
-#      launcher wiring), copied from THIS Beachfront repo as the canonical template.
+#   4. A PR that runs the OFFICIAL `sandcastle init` (@latest) for the base config
+#      (so Sandcastle's Dockerfile/run harness stay current), then overlays only the
+#      Beachfront-specific bits (tuned prompt, CI run config, headless workflow) plus
+#      the package.json launcher wiring.
 #
 # Linking the repo into a Beachfront Instance's Registry is a separate step (see #23).
 #
@@ -69,20 +71,29 @@ gh api -X PUT "repos/$REPO/actions/permissions/workflow" \
   -F default_workflow_permissions=write \
   -F can_approve_pull_request_reviews=true >/dev/null
 
-# 4. Install the template via a PR -------------------------------------------
-echo "▸ Opening a PR to install the headless Sandcastle workflow"
+# 4. Install latest official Sandcastle + Beachfront overlay via a PR ---------
+echo "▸ Scaffolding the latest official Sandcastle + Beachfront overlay"
+command -v npx >/dev/null || { echo "✗ npx (Node.js) is required"; exit 1; }
 TMP="$(mktemp -d)"; trap 'rm -rf "$TMP"' EXIT
 gh repo clone "$REPO" "$TMP/repo" -- --depth 1 >/dev/null 2>&1
 DEFAULT_BRANCH="$(gh repo view "$REPO" --json defaultBranchRef --jq .defaultBranchRef.name)"
 cd "$TMP/repo"
 git switch -c beachfront/onboard >/dev/null 2>&1
 
-mkdir -p .sandcastle .github/workflows
-cp "$SRC_ROOT/.sandcastle/main.mts" \
-   "$SRC_ROOT/.sandcastle/prompt.md" \
-   "$SRC_ROOT/.sandcastle/Dockerfile" \
-   "$SRC_ROOT/.sandcastle/.env.example" \
-   "$SRC_ROOT/.sandcastle/.gitignore" .sandcastle/
+# Base config straight from the official package (@latest), so the Sandcastle
+# mechanics — Dockerfile, run harness, .env.example — are always current rather
+# than vendored copies that drift.
+npx -y @ai-hero/sandcastle@latest init \
+  --template simple-loop --agent claude-code --sandbox docker \
+  --issue-tracker github-issues --create-label false \
+  --build-image false --install-template-deps false
+
+# Beachfront overlay: behaviour that does NOT come from upstream — our prompt
+# (ready-for-agent selection, blocked-by handling, CI mode), our run config
+# (model + CI branch strategy), and the autonomous headless workflow.
+cp "$SRC_ROOT/.sandcastle/prompt.md" .sandcastle/prompt.md
+cp "$SRC_ROOT/.sandcastle/main.mts"  .sandcastle/main.mts
+mkdir -p .github/workflows
 cp "$SRC_ROOT/.github/workflows/sandcastle.yml" .github/workflows/
 
 # Ensure the host launcher exists: the `sandcastle` script + its dev deps.
@@ -103,11 +114,42 @@ else
 JSON
 fi
 
-# Warn (don't fail) if the Matt-Pocock agents contract is missing — Beachfront reads
-# docs/agents/triage-labels.md to classify issues (ADR-0003). Run setup-matt-pocock-skills.
-[ -f docs/agents/triage-labels.md ] || echo "  ⚠ docs/agents/ not found — run setup-matt-pocock-skills in $REPO for full classification"
+# Ensure the agents contract Beachfront reads to classify issues (ADR-0003). If the
+# repo has already run setup-matt-pocock-skills we leave its choices alone; otherwise
+# we scaffold the common-case defaults (GitHub issues, default labels, single-context).
+# Re-run setup-matt-pocock-skills later to customise.
+if [ ! -f docs/agents/triage-labels.md ]; then
+  echo "  · scaffolding default docs/agents/ contract"
+  mkdir -p docs/agents
+  cat > docs/agents/issue-tracker.md <<EOF
+# Issue tracker
 
-git add .sandcastle .github/workflows/sandcastle.yml package.json
+Issues live in **GitHub Issues** on \`$REPO\`, managed with the \`gh\` CLI.
+External pull requests are **not** a triage surface.
+EOF
+  cat > docs/agents/triage-labels.md <<'EOF'
+# Triage labels
+
+Canonical triage roles map 1:1 to GitHub label strings (defaults — no remap).
+
+| Role | Label |
+| --- | --- |
+| `bug` | `bug` |
+| `enhancement` | `enhancement` |
+| `needs-triage` | `needs-triage` |
+| `needs-info` | `needs-info` |
+| `ready-for-agent` | `ready-for-agent` |
+| `ready-for-human` | `ready-for-human` |
+| `wontfix` | `wontfix` |
+EOF
+  cat > docs/agents/domain.md <<'EOF'
+# Domain docs
+
+**Single-context** repo. Glossary at `CONTEXT.md` (if present); ADRs under `docs/adr/`.
+EOF
+fi
+
+git add .sandcastle .github/workflows/sandcastle.yml package.json docs/agents
 git -c user.name="beachfront" -c user.email="beachfront@users.noreply.github.com" \
     commit -q -m "Onboard to Beachfront: autonomous headless Sandcastle workflow"
 git push -u origin beachfront/onboard >/dev/null 2>&1
