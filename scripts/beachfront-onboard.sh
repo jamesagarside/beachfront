@@ -13,6 +13,7 @@
 #   4. The repo settings the headless loop depends on:
 #        - Actions may create pull requests
 #        - Actions default workflow permissions = write
+#        - Native auto-merge enabled (for the gated auto-merge workflow, ADR-0007)
 #   5. Branch protection on the default branch (#43): PRs only, no required reviewer,
 #      enforced for admins. Required status checks are opt-in via BEACHFRONT_REQUIRED_CHECKS
 #      (an onboarded repo's CI differs from ours).
@@ -107,6 +108,12 @@ gh api -X PUT "repos/$REPO/actions/permissions/workflow" \
   -F default_workflow_permissions=write \
   -F can_approve_pull_request_reviews=true >/dev/null
 
+# Native auto-merge must be on for the gated auto-merge workflow (docs/adr/0007) to call
+# `gh pr merge --auto`. Branch protection (section 5) still gates the actual merge, so this
+# only grants the capability — it never weakens the merge requirements.
+echo "▸ Enabling native auto-merge (gated by .github/workflows/automerge.yml)"
+gh api -X PATCH "repos/$REPO" -F allow_auto_merge=true >/dev/null
+
 DEFAULT_BRANCH="$(gh repo view "$REPO" --json defaultBranchRef --jq .defaultBranchRef.name)"
 
 # 5. Branch protection on the default branch (#43) ---------------------------
@@ -156,6 +163,8 @@ cp "$SRC_ROOT/.sandcastle/prompt.md" .sandcastle/prompt.md
 cp "$SRC_ROOT/.sandcastle/main.mts"  .sandcastle/main.mts
 mkdir -p .github/workflows
 cp "$SRC_ROOT/.github/workflows/sandcastle.yml" .github/workflows/
+# Gated auto-merge (docs/adr/0007): merges only Markdown-only App PRs once checks pass.
+cp "$SRC_ROOT/.github/workflows/automerge.yml" .github/workflows/
 
 # Ensure the host launcher exists: the `sandcastle` script + its dev deps.
 if [ -f package.json ]; then
@@ -210,12 +219,12 @@ EOF
 EOF
 fi
 
-git add .sandcastle .github/workflows/sandcastle.yml package.json docs/agents
+git add .sandcastle .github/workflows/sandcastle.yml .github/workflows/automerge.yml package.json docs/agents
 git -c user.name="beachfront" -c user.email="beachfront@users.noreply.github.com" \
     commit -q -m "Onboard to Beachfront: autonomous headless Sandcastle workflow"
 git push -u origin beachfront/onboard >/dev/null 2>&1
 gh pr create -R "$REPO" --base "$DEFAULT_BRANCH" --head beachfront/onboard \
   --title "Onboard to Beachfront (headless Sandcastle)" \
-  --body "Adds the autonomous Sandcastle loop and \`.sandcastle/\` config. Merge to start draining \`ready-for-agent\` issues. The repo secrets (Claude + App PR-opener), triage labels, and Actions PR permission are already configured by the onboarder."
+  --body "Adds the autonomous Sandcastle loop and \`.sandcastle/\` config, plus the gated auto-merge workflow (docs/adr/0007). Merge to start draining \`ready-for-agent\` issues. The repo secrets (Claude + App PR-opener), triage labels, Actions PR permission, native auto-merge, and branch protection are already configured by the onboarder."
 
 echo "✓ Done — review and merge the onboarding PR on $REPO."
