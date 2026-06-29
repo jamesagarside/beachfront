@@ -14,8 +14,13 @@ on:
     # labeled: an issue moves to ready-for-agent (e.g. via triage).
     # opened:  an issue is created already ready-for-agent (e.g. via /to-issues).
     types: [opened, labeled]
-  # Autonomous cadence (verified end-to-end). Each run drains one ready-for-agent
-  # issue and opens a PR; the in-progress label stops re-picking. Tune the cron.
+  # A merge to main closes a blocker AND lands its code — so newly-unblocked work
+  # can start immediately, paced by your merges instead of the clock. Only human
+  # merges push to main; agent PRs target sandcastle/auto-* branches, so no runaway.
+  push:
+    branches: [main]
+  # Backstop only now — catches anything the event triggers miss (e.g. bursts the
+  # concurrency guard collapsed). Tune the cron.
   schedule:
     - cron: "0 */6 * * *"
 
