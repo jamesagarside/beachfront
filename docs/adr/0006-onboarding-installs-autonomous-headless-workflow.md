@@ -16,8 +16,10 @@ loop produces no continuous activity to observe and isn't a conducive workflow.
 
 **Beachfront onboarding installs an autonomous, headless Sandcastle workflow** into
 each Managed repo: a `.github/workflows/sandcastle.yml` that runs the loop on GitHub
-Actions, triggered automatically — on a **schedule** and when an issue is **labelled
-`ready-for-agent`** — plus manual `workflow_dispatch`. It uses the repo's built-in
+Actions, triggered automatically — when an issue becomes **`ready-for-agent`** (`opened`
+or `labeled`), on every **merge to `main`** (which closes a blocker and lands its code, so
+the next unblocked issue starts at merge-speed not clock-speed), and on a **schedule**
+backstop — plus manual `workflow_dispatch`. It uses the repo's built-in
 `GITHUB_TOKEN` for GitHub access (no PAT) and a Claude credential from **repo Secrets**.
 
 Autonomous runs **open a pull request** for review rather than pushing to `main` — the
