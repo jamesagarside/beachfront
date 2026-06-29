@@ -41,7 +41,9 @@ drains the `ready-for-agent` backlog continuously.
 ## Consequences
 
 - Onboarding must set one repo Secret (the Claude credential) per Managed repo; the
-  GitHub side needs no PAT.
+  GitHub side needs no PAT — **except** the PR-open step, which ADR-0007 routes through
+  a GitHub App installation token (PAT fallback) so the opened PR actually triggers CI
+  (`GITHUB_TOKEN`-opened PRs do not). That is the one GitHub credential beyond Claude's.
 - Autonomous spend is real — guarded by single-run **concurrency**, a **conservative
   schedule**, and the **PR review gate**. The schedule ships disabled until a manual
   dispatch run is verified in that repo.
