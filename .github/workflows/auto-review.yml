@@ -1,0 +1,192 @@
+name: Auto-review (independent agent gate for loop PRs)
+
+# Promotes the Sandcastle loop's feature PRs into the auto-merge path via an INDEPENDENT
+# review agent, instead of leaving every src/ PR for a human (ADR-0012, amending ADR-0007).
+#
+# Safety model (see docs/adr/0012):
+#   1. Mechanical pre-gate (cheap, before any model spend): author is the Beachfront App
+#      AND the diff touches no governance path (docs/adr/**, CONTEXT.md, docs/brand.md,
+#      docs/agents/**). Either fails -> leave for a human, no review.
+#   2. A SEPARATE Claude invocation (different model from the author, review-only prompt,
+#      NO GitHub credentials, no merge powers) judges the diff against the linked issue's
+#      acceptance criteria and emits a single fail-closed verdict.
+#   3. Only an explicit PASS enables GitHub-native auto-merge; the required CI checks
+#      (typecheck/test/build/gate) still gate the actual merge. Anything else -> needs-human.
+#
+# Untrusted inputs (PR body/diff, issue body) are fetched into files and never interpolated
+# into a run: script; the review agent receives them as a single argv, not shell. Uses
+# pull_request (not _target): loop PRs are same-repo sandcastle/auto-* branches.
+
+on:
+  pull_request:
+    types: [opened, reopened]
+
+permissions:
+  contents: write
+  pull-requests: write
+  issues: write
+
+concurrency:
+  group: auto-review-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+jobs:
+  review:
+    # Only the loop's own PRs, and only those opened by the App identity (not a human, not
+    # GITHUB_TOKEN). secrets aren't usable in `if:`, so the Claude-key check is in-step.
+    if: >-
+      ${{ startsWith(github.head_ref, 'sandcastle/auto-')
+          && github.event.pull_request.user.login == (vars.BEACHFRONT_APP_BOT_LOGIN || 'beachfront-agent[bot]') }}
+    runs-on: ubuntu-latest
+    # Bound any hang (e.g. a stuck review) so a PR can't tie up a runner; a timeout just
+    # fails the job, which leaves the PR un-merged and human-gated (fail-closed).
+    timeout-minutes: 15
+    env:
+      REVIEW_MODEL: ${{ vars.BEACHFRONT_REVIEW_MODEL || 'claude-sonnet-4-6' }}
+    steps:
+      - name: Check out the PR head
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+          fetch-depth: 0
+
+      # --- Mechanical pre-gate: governance + security paths are never agent-merged -------
+      # Deterministic floor (the AI layer below is the semantic backstop). Any path that is
+      # human-governed (ADR-0007) OR security-sensitive stays human-gated regardless of the
+      # review verdict — security changes must always reach a human, even if correct.
+      - name: Mechanical pre-gate (governance + security paths stay human-gated)
+        id: pregate
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          REPO: ${{ github.repository }}
+          PR: ${{ github.event.pull_request.number }}
+        run: |
+          set -euo pipefail
+          gh pr diff "$PR" --repo "$REPO" --name-only > /tmp/files.txt
+          blocked=""
+          while IFS= read -r f; do
+            [ -z "$f" ] && continue
+            case "$f" in
+              # Human-governed (ADR-0007)
+              docs/adr/*|CONTEXT.md|docs/brand.md|docs/agents/*)
+                blocked="${blocked}  - $f (human-governed)"$'\n' ;;
+              # Security-sensitive — authn/authz, secrets, key material
+              src/auth/*|*secret*|*credential*|*oauth*|*password*|*.pem|*.key)
+                blocked="${blocked}  - $f (security)"$'\n' ;;
+              # Supply chain — a compromised dep passes tests fine (ADR-0007)
+              package.json|package-lock.json|*/package.json|*/package-lock.json|yarn.lock|pnpm-lock.yaml)
+                blocked="${blocked}  - $f (supply-chain)"$'\n' ;;
+              # CI/CD, the autonomous-agent harness, env/config — privilege surfaces
+              .github/*|.sandcastle/*|.env|.env.*|*/.env|*/.env.*|beachfront.config.*)
+                blocked="${blocked}  - $f (privileged config/CI)"$'\n' ;;
+            esac
+          done < /tmp/files.txt
+          if [ -n "$blocked" ]; then
+            echo "::notice::Diff touches human-governed or security-sensitive paths; leaving for a human:"
+            printf '%s' "$blocked"
+            echo "proceed=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "proceed=true" >> "$GITHUB_OUTPUT"
+          fi
+
+      # --- Assemble review context (untrusted content -> files, never into run: via ${{}}) -
+      - name: Assemble review context
+        if: steps.pregate.outputs.proceed == 'true'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          REPO: ${{ github.repository }}
+          PR: ${{ github.event.pull_request.number }}
+        run: |
+          set -euo pipefail
+          gh pr view "$PR" --repo "$REPO" --json body,title > /tmp/pr.json
+          gh pr diff "$PR" --repo "$REPO" > /tmp/diff.patch
+          # The linked issue carries the acceptance criteria. Sandcastle puts `Closes #N`
+          # in the PR body; review against the first one. No linked issue -> fail closed.
+          N="$(jq -r '.body' /tmp/pr.json | grep -oiE 'closes +#[0-9]+' | grep -oE '[0-9]+' | head -1 || true)"
+          if [ -z "${N:-}" ]; then
+            echo "no-issue" > /tmp/issue.md
+            echo "::warning::No linked issue found in PR body; review will fail closed."
+          else
+            gh issue view "$N" --repo "$REPO" > /tmp/issue.md
+          fi
+          {
+            echo "You are an INDEPENDENT code reviewer. An autonomous coding agent opened a"
+            echo "pull request to satisfy a GitHub issue. Your review is the gate that decides"
+            echo "whether it auto-merges, so be rigorous and skeptical — you are NOT the author."
+            echo
+            echo "Judge ONLY from the issue and the diff below (plus the checked-out code in the"
+            echo "working directory, which you may read). Decide:"
+            echo "  - Does the diff actually satisfy the issue's acceptance criteria?"
+            echo "  - Any correctness bug, security issue, or obvious breakage?"
+            echo "  - Is the change in scope (no unrelated or risky edits)?"
+            echo "  - Are there meaningful tests for new behaviour?"
+            echo
+            echo "SECURITY BLOCK (overrides everything): if the change has ANY security"
+            echo "relevance — authentication, authorization, tokens/secrets/credentials,"
+            echo "cryptography, input validation or sanitisation, permissions, CORS, network"
+            echo "trust boundaries, dependency/supply-chain changes, or CI/workflow changes —"
+            echo "answer FAIL regardless of how correct it looks. Security-relevant work must"
+            echo "always go to a human. When unsure whether something is security-relevant,"
+            echo "treat it as security-relevant and answer FAIL."
+            echo
+            echo "Otherwise be conservative and FAIL-CLOSED: answer PASS only if you are"
+            echo "confident the change is correct, safe, in-scope, and complete. If anything is"
+            echo "uncertain, missing, or unverifiable (including a missing linked issue), FAIL."
+            echo
+            echo "Write a short review (bullet points), then your decision as the LAST line,"
+            echo "EXACTLY one of:  VERDICT: PASS   or   VERDICT: FAIL"
+            echo
+            echo "===== LINKED ISSUE ====="
+            cat /tmp/issue.md
+            echo
+            echo "===== DIFF ====="
+            cat /tmp/diff.patch
+          } > /tmp/prompt.md
+
+      - name: Install Claude Code
+        if: steps.pregate.outputs.proceed == 'true'
+        run: |
+          set -euo pipefail
+          curl -fsSL https://claude.ai/install.sh | bash
+          echo "$HOME/.local/bin" >> "$GITHUB_PATH"
+
+      # The review agent runs with the Claude key ONLY — no GH_TOKEN in its env and no merge
+      # powers, so it cannot act on the repo; it can only produce the review text we parse.
+      - name: Run the independent review
+        if: steps.pregate.outputs.proceed == 'true'
+        env:
+          CLAUDE_CODE_OAUTH_TOKEN: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
+        run: |
+          set -euo pipefail
+          claude -p "$(cat /tmp/prompt.md)" \
+            --model "$REVIEW_MODEL" \
+            --output-format text \
+            > /tmp/review.txt || true
+          echo "----- review output -----"
+          cat /tmp/review.txt || true
+
+      # --- Act on the verdict deterministically -----------------------------------------
+      - name: Apply the verdict
+        if: steps.pregate.outputs.proceed == 'true'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          REPO: ${{ github.repository }}
+          PR: ${{ github.event.pull_request.number }}
+        run: |
+          set -euo pipefail
+          # Fail closed: only an explicit final PASS verdict merges.
+          verdict="$(grep -oE 'VERDICT: (PASS|FAIL)' /tmp/review.txt | tail -1 || true)"
+          {
+            echo "### Independent review (${REVIEW_MODEL}) — ADR-0012"
+            echo
+            cat /tmp/review.txt
+          } > /tmp/comment.md
+          if [ "$verdict" = "VERDICT: PASS" ]; then
+            echo "::notice::Review PASSED — enabling auto-merge (CI checks still gate the merge)."
+            gh pr comment "$PR" --repo "$REPO" --body-file /tmp/comment.md
+            gh pr merge "$PR" --repo "$REPO" --auto --squash
+          else
+            echo "::notice::Review did not PASS (verdict='${verdict:-none}') — leaving for a human."
+            gh pr edit "$PR" --repo "$REPO" --add-label needs-human || true
+            gh pr comment "$PR" --repo "$REPO" --body-file /tmp/comment.md
+          fi
