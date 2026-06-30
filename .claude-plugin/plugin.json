@@ -1,0 +1,12 @@
+{
+  "name": "beachfront",
+  "description": "A calm single pane of glass over your Sandcastle estate — open issues by triage role and running-agent counts, in any MCP host.",
+  "version": "0.0.0",
+  "author": { "name": "Beachfront" },
+  "mcpServers": {
+    "beachfront": {
+      "command": "npx",
+      "args": ["-y", "tsx", "scripts/beachfront-mcp.mts"]
+    }
+  }
+}
