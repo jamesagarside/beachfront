@@ -1,0 +1,74 @@
+name: Auto-update PR branches (keep auto-merge PRs current)
+
+# Branch protection requires PRs to be up to date before merge (strict required checks),
+# but GitHub-native auto-merge does NOT auto-update a behind branch. So a loop PR that the
+# review agent approved for auto-merge (ADR-0012) stalls the moment another PR merges to
+# main ahead of it — the "BEHIND" friction. This keeps the queue flowing: whenever main
+# advances, refresh every open PR that has auto-merge enabled and is behind, so CI re-runs
+# and GitHub completes the merge once it is green.
+#
+# The branch update is pushed with a GitHub App token, NOT GITHUB_TOKEN: a GITHUB_TOKEN
+# push does not re-trigger the required CI checks (the same anti-recursion rule that makes
+# the App open loop PRs — ADR-0007), so a GITHUB_TOKEN update would leave the PR forever
+# "expecting" checks. The App is therefore required for this workflow to be effective.
+#
+# This is a required component of the autonomous loop harness (docs/agents/autonomous-loop.md):
+# sandcastle.yml opens PRs, auto-review.yml gates+enables auto-merge, and this keeps them
+# mergeable as main moves. Updating a branch fires `synchronize` (re-runs CI) but NOT the
+# auto-review `opened`/`reopened` trigger, so an already-approved PR is not re-reviewed.
+
+on:
+  push:
+    branches: [main]
+
+permissions:
+  contents: write
+  pull-requests: write
+
+concurrency:
+  group: auto-update
+  cancel-in-progress: true
+
+jobs:
+  update:
+    runs-on: ubuntu-latest
+    env:
+      BF_APP_ID: ${{ secrets.BEACHFRONT_APP_ID }}
+    steps:
+      # Required so the branch update re-triggers CI; skipped if no App is configured.
+      - name: Mint the App token
+        id: app_token
+        if: ${{ env.BF_APP_ID != '' }}
+        uses: actions/create-github-app-token@v1
+        with:
+          app-id: ${{ secrets.BEACHFRONT_APP_ID }}
+          private-key: ${{ secrets.BEACHFRONT_APP_PRIVATE_KEY }}
+
+      - name: Update behind auto-merge PRs to current main
+        env:
+          GH_TOKEN: ${{ steps.app_token.outputs.token || secrets.GITHUB_TOKEN }}
+          REPO: ${{ github.repository }}
+          USING_APP: ${{ env.BF_APP_ID != '' }}
+        run: |
+          set -euo pipefail
+          if [ "$USING_APP" != "true" ]; then
+            echo "::warning::No Beachfront App configured — a GITHUB_TOKEN branch update will not re-trigger CI, so behind PRs cannot auto-merge. Skipping (open PRs wait for a human)."
+            exit 0
+          fi
+          # Open PRs with auto-merge enabled that are behind main. mergeStateStatus is
+          # computed async, so a just-merged push may briefly report UNKNOWN; the next
+          # main push re-evaluates, so the queue still drains.
+          prs="$(gh pr list --repo "$REPO" --state open \
+            --json number,autoMergeRequest,mergeStateStatus \
+            --jq '.[] | select(.autoMergeRequest != null and .mergeStateStatus == "BEHIND") | .number')"
+          if [ -z "$prs" ]; then
+            echo "No behind auto-merge PRs to update."
+            exit 0
+          fi
+          for n in $prs; do
+            echo "::notice::Updating PR #$n to current main (re-runs CI; auto-merge completes on green)."
+            # A conflict (DIRTY) makes update-branch fail — leave it for a human / the
+            # DIRTY-PR regenerate path (ADR-0006), don't hand-resolve.
+            gh pr update-branch "$n" --repo "$REPO" \
+              || echo "::warning::Could not update #$n (likely a conflict) — leaving for a human."
+          done
