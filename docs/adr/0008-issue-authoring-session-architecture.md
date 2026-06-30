@@ -4,6 +4,11 @@
 
 proposed
 
+The runtime/credential choice (A vs B) stays open pending the token spike below. The product
+sub-decisions were **grilled and locked with the owner (2026-06-30)**: C ships first; the
+session is per-Instance opt-in and **disabled on the public demo**; issues are written via a
+single "create all" confirm (no copy-paste), the `to-issues` quiz-then-publish shape.
+
 ## Context
 
 Beachfront should let a Viewer author work in one place: pick a Managed repo, think a
@@ -57,8 +62,11 @@ they preserve that.**
    same Worker.** The browser holds the transcript; the Worker relays each turn to
    Anthropic and persists nothing, preserving #24's no-persistence property. It is
    **optional per Instance**, exactly like OAuth login (ADR-0001): no Worker → no terminal,
-   but PAT mode and C still work. A stateful variant (Durable Objects) is allowed *only* if
-   a per-turn model proves insufficient, at the cost of the no-persistence property.
+   but PAT mode and C still work. It ships **disabled on the public demo** — that Instance is
+   a read-only example over baked, credential-less public data, so authoring into it is
+   meaningless and a public Claude relay is abuse-prone. A stateful variant (Durable Objects)
+   is allowed *only* if a per-turn model proves insufficient, at the cost of the
+   no-persistence property.
 
 3. **Actions-hosted (A) is the fallback, not the default.** It is retained because it is
    the proven way to reuse the subscription token and gives the full agent environment, but
@@ -70,6 +78,14 @@ they preserve that.**
    machinery already consumes (ADR-0004/0006, #19/#20). The session is scoped to one
    Managed repo and grounded in that repo's domain context (its `CONTEXT.md` / agents
    contract, ADR-0003), fetched with the Viewer's token.
+
+5. **Issues are written via a single "create all" confirm, never copy-paste.** Claude
+   proposes the issue(s) inline in the session; the Viewer glances and confirms — "create
+   all", editing one first if they wish — and Beachfront writes them on the selected repo
+   with the Viewer's own token. This is the `to-issues` quiz-then-publish shape (the Matt
+   Pocock skill): no per-field forms and no copy-paste, but exactly one checkpoint so issues
+   never land on the tracker unseen — consistent with the human-gate-on-real-actions pattern
+   (ADR-0006/0007). Read-only tokens get the "open on GitHub" pivot (as #17).
 
 **Open question — must resolve before B is built (follow-up spike):** can a Worker call the
 Anthropic API with the subscription `CLAUDE_CODE_OAUTH_TOKEN`, or does B require a separate
