@@ -26,17 +26,17 @@ await run({
   // review the result, then raise this to grind through more ready-for-agent issues.
   maxIterations: 1,
 
-  // Branch strategy — merge-to-head creates a temporary branch for the agent
-  // to work on, then merges the result back to HEAD when the run completes.
-  // This is required when using copyToWorktree, since head mode bind-mounts
-  // the host directory directly (no worktree to copy into).
+  // Branch strategy — merge-to-head creates a temporary worker branch for the
+  // agent to work on, then merges the result back onto HEAD when the run
+  // completes. That merge-back is a host-side `git merge` run against the
+  // checked-out repo, so it REQUIRES A CLEAN HOST WORKING TREE: if any tracked
+  // file is dirty when the merge runs, git aborts with "local changes would be
+  // overwritten by merge" and the loop dies with a SyncError. Headless in CI,
+  // the runner's `npm install` step can dirty package-lock.json (a lockfile
+  // that has drifted from package.json), which is exactly what broke every run
+  // — see docs/adr/0011 and .github/workflows/sandcastle.yml, which keeps the
+  // host tree pristine before this merge.
   branchStrategy: { type: "merge-to-head" },
-
-  // BOOTSTRAP NOTE: this repo has no app yet — issue #1 ("Scaffold app + deploy…")
-  // creates package.json and node_modules. Until that lands, there is nothing to
-  // copy, so copyToWorktree is disabled. Re-enable it (and it will speed up every
-  // iteration) once #1 has merged a package.json + node_modules on the host:
-  //   copyToWorktree: ["node_modules"],
 
   // Lifecycle hooks — commands grouped by where they run (host or sandbox).
   hooks: {

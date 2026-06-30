@@ -67,7 +67,18 @@ jobs:
 
       # `npm install` (not `ci`) so this same template works in any onboarded repo,
       # whose lockfile may not be perfectly in sync with the injected sandcastle deps.
+      # This install only needs to provide `tsx` + the Sandcastle CLI to LAUNCH the
+      # loop on the host; the agent does its own install inside the sandbox.
       - run: npm install --no-audit
+
+      # Keep the host working tree pristine before the loop runs. The loop's
+      # branch strategy (merge-to-head) ends with a host-side `git merge`, which
+      # aborts if any tracked file is dirty. `npm install` above can rewrite a
+      # drifted package-lock.json and dirty the tree — discard that churn so the
+      # merge always sees a clean tree. Untracked/ignored files (node_modules,
+      # .sandcastle/.env) are left untouched. See docs/adr/0011.
+      - name: Keep the host tree clean for merge-to-head
+        run: git checkout -- .
 
       - name: Write Sandcastle env from secrets
         env:
@@ -87,6 +98,30 @@ jobs:
         env:
           CI: "true"
         run: npm run sandcastle
+
+      # The Actions summary only shows the SyncError, not the real worker log
+      # (Sandcastle tails it to .sandcastle/logs/** inside the runner). On
+      # failure, print those logs inline AND upload them so a broken run is
+      # diagnosable without re-running. Runs even when the loop step fails.
+      - name: Surface the worker log on failure
+        if: failure()
+        run: |
+          echo "::group::.sandcastle/logs"
+          for f in .sandcastle/logs/*.log; do
+            [ -e "$f" ] || { echo "(no logs found)"; break; }
+            echo "===== $f ====="
+            cat "$f"
+          done
+          echo "::endgroup::"
+
+      - name: Upload the worker log on failure
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: sandcastle-logs-${{ github.run_id }}
+          path: .sandcastle/logs/**
+          if-no-files-found: ignore
+          retention-days: 14
 
       # Mint a short-lived GitHub App installation token to open the PR with. Skipped
       # when no App is configured; the next step then falls back to GITHUB_TOKEN.
