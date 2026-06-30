@@ -12,11 +12,31 @@ are supported — editing issues, linking repos, and triggering agent runs — e
 performed as the Viewer's own token (or by pivoting out to GitHub). It does **not**
 orchestrate agents; orchestration lives in each repo's Sandcastle.
 
+**Primary surface.** Beachfront is delivered first as the **Beachfront plugin** — a
+Claude plugin (MCP server) whose tools (text-driven, in any MCP host) and MCP App UI
+(interactive, in Claude Desktop) let an AI developer see and act on the estate from
+inside their Claude session. A **web companion** (static SPA) renders the same read-only
+view from anywhere. The interactive layer runs against the developer's local Claude
+(model auth) and `gh` (GitHub access); Beachfront stores no credentials. See
+[ADR-0010](docs/adr/0010-mcp-plugin-first.md).
+
 ## Language
 
 **Beachfront**:
 The tool itself — the read-mostly pane of glass over Sandcastle-enabled repos.
 _Avoid_: dashboard, control centre, orchestrator
+
+**Beachfront plugin**:
+The primary delivery of Beachfront — a Claude plugin (MCP server) exposing the estate,
+Triage, issue authoring, and Agent status as **tools** (text-driven, any MCP host) and
+**MCP App UI** (interactive panels, in Claude Desktop). Runs against the developer's local
+Claude and `gh`; stores no credentials. The web companion is the secondary surface.
+_Avoid_: the app, the extension, the bot
+
+**Estate**:
+All of a Viewer's Sandcastle-enabled (Managed) repos seen together — the whole shore.
+What the Shoreline view aggregates.
+_Avoid_: fleet, portfolio
 
 **Sandcastle**:
 `@ai-hero/sandcastle` — the library + CLI that runs a coding agent in a sandbox
