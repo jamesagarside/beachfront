@@ -65,6 +65,32 @@ describe("buildEstateView", () => {
     });
   });
 
+  it("flattens the cross-repo Attention queue, bucketed and oldest-first", async () => {
+    const v = await view([
+      {
+        repo: REPO_A,
+        mapping: defaultTriageMapping(),
+        issues: [
+          makeIssue({ number: 1, labels: [{ name: "needs-triage", color: "" }] }),
+          // ready-for-agent is handled — it stays out of the Attention queue.
+          makeIssue({ number: 2, labels: [{ name: "ready-for-agent", color: "" }] }),
+        ],
+      },
+      {
+        repo: REPO_B,
+        mapping: defaultTriageMapping(),
+        // No recognised triage label → surfaced as untriaged.
+        issues: [makeIssue({ number: 3 })],
+      },
+    ]);
+
+    // Bucket order leads (untriaged → needs-triage → needs-info); handled out.
+    expect(v.attention).toEqual([
+      expect.objectContaining({ owner: "octo", repo: "beta", number: 3, bucket: "untriaged" }),
+      expect.objectContaining({ owner: "octo", repo: "alpha", number: 1, bucket: "needs-triage" }),
+    ]);
+  });
+
   it("carries through repos the source couldn't read as skipped", async () => {
     const v = await view([
       { repo: REPO_A, issues: [makeIssue({ number: 1 })] },
