@@ -18,6 +18,7 @@ import { readdirSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
+import { z } from "zod";
 import type { RepoRef } from "../src/config.ts";
 import { ghDataSource, type RunCommand } from "../src/mcp/ghDataSource.ts";
 import {
@@ -25,6 +26,11 @@ import {
   estateToolConfig,
   runEstateTool,
 } from "../src/mcp/estateTool.ts";
+import {
+  REPO_DECK_TOOL_NAME,
+  repoDeckToolConfig,
+  runRepoDeckTool,
+} from "../src/mcp/repoDeckTool.ts";
 import { parseRegistry } from "../src/registry/registry.ts";
 
 /**
@@ -72,5 +78,21 @@ server.registerTool(ESTATE_TOOL_NAME, estateToolConfig, async () => {
   const { content } = await runEstateTool(source);
   return { content };
 });
+
+// The per-repo deck (#88): given a Registry repo, return its Kanban board as an
+// MCP App UI resource (the embedded `text/html`) with a calm text fallback. The
+// embedded resource carries the rendered board, so rich hosts draw the deck and
+// the terminal still reads it — no separate output schema needed.
+server.registerTool(
+  REPO_DECK_TOOL_NAME,
+  {
+    ...repoDeckToolConfig,
+    inputSchema: { owner: z.string(), repo: z.string() },
+  },
+  async ({ owner, repo }) => {
+    const { content } = await runRepoDeckTool(source, { owner, repo });
+    return { content };
+  },
+);
 
 await server.connect(new StdioServerTransport());
