@@ -18,6 +18,7 @@ import { readdirSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
+import { z } from "zod";
 import type { RepoRef } from "../src/config.ts";
 import { ghDataSource, type RunCommand } from "../src/mcp/ghDataSource.ts";
 import {
@@ -25,6 +26,17 @@ import {
   estateToolConfig,
   runEstateTool,
 } from "../src/mcp/estateTool.ts";
+import {
+  AUTHOR_TOOL_NAME,
+  authorToolConfig,
+  runAuthorIssues,
+} from "../src/mcp/authorTools.ts";
+import {
+  SET_ROLE_TOOL_NAME,
+  setRoleToolConfig,
+  runSetTriageRole,
+} from "../src/mcp/triageTool.ts";
+import { CANONICAL_TRIAGE_ROLES } from "../src/triage/mapping.ts";
 import { parseRegistry } from "../src/registry/registry.ts";
 
 /**
@@ -72,5 +84,57 @@ server.registerTool(ESTATE_TOOL_NAME, estateToolConfig, async () => {
   const { content } = await runEstateTool(source);
   return { content };
 });
+
+// Write tool: author a breakdown of issues for a repo, created on one confirm
+// (#89). The conversation produces the drafts; this checkpoints before writing.
+server.registerTool(
+  AUTHOR_TOOL_NAME,
+  {
+    ...authorToolConfig,
+    inputSchema: {
+      repo: z.string().describe('Target repo as "owner/repo".'),
+      issues: z
+        .array(
+          z.object({
+            title: z.string(),
+            body: z.string(),
+            labels: z.array(z.string()).optional(),
+          }),
+        )
+        .describe("The issue breakdown to draft (and, on confirm, create)."),
+      confirm: z
+        .boolean()
+        .optional()
+        .describe("Set true to create all drafts; omit to preview them first."),
+    },
+  },
+  async (args) => {
+    const { content } = runAuthorIssues(run, args);
+    return { content };
+  },
+);
+
+// Write tool: change an open issue's triage role, writing the repo's mapped
+// label via `gh` (#89, #6).
+server.registerTool(
+  SET_ROLE_TOOL_NAME,
+  {
+    ...setRoleToolConfig,
+    inputSchema: {
+      repo: z.string().describe('Target repo as "owner/repo".'),
+      issue: z.number().int().positive().describe("The open issue's number."),
+      role: z
+        .enum(CANONICAL_TRIAGE_ROLES)
+        .describe("The canonical triage role to set."),
+    },
+  },
+  async (args) => {
+    const { content } = await runSetTriageRole(
+      { fetchTriageMapping: source.fetchTriageMapping, run },
+      args,
+    );
+    return { content };
+  },
+);
 
 await server.connect(new StdioServerTransport());
