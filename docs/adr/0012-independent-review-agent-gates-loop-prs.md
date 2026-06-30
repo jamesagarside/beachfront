@@ -53,6 +53,12 @@ not merge anything until the required `typecheck`/`test`/`build`/`gate` checks a
 (branch protection, #43). The review agent can only *promote* a PR into the same checked,
 status-gated merge path that a human approval would; it cannot bypass a red check.
 
+Because branch protection is **strict** (a PR must be up to date with `main` to merge) and
+GitHub auto-merge does not auto-update a behind branch, a companion workflow
+(`auto-update.yml`) is a **required** part of this mechanism: on every push to `main` it
+updates behind auto-merge PRs (using the App token, so CI re-fires) so the approved queue
+actually drains instead of stalling `BEHIND`. See `docs/agents/autonomous-loop.md`.
+
 This **amends ADR-0007** for `sandcastle/auto-*` PRs only. ADR-0007's Markdown-only
 mechanical path (`automerge.yml`) is unchanged and still governs human and non-loop PRs.
 
