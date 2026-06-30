@@ -1,0 +1,8 @@
+{
+  "mcpServers": {
+    "beachfront": {
+      "command": "npx",
+      "args": ["-y", "tsx", "scripts/beachfront-mcp.mts"]
+    }
+  }
+}
