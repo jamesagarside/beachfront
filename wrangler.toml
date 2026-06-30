@@ -1,0 +1,12 @@
+# Cloudflare Worker config for the Beachfront OAuth token-exchange shim.
+# This is OPTIONAL infrastructure — only an Instance owner who wants the
+# "Login with GitHub" path deploys it (ADR-0001). PAT mode needs none of this.
+#
+# Setup + deploy steps: docs/oauth-worker.md
+name = "beachfront-oauth"
+main = "src/auth/oauthWorker.ts"
+compatibility_date = "2024-11-01"
+
+# GITHUB_CLIENT_ID / GITHUB_CLIENT_SECRET are set as Secrets, never committed:
+#   npx wrangler secret put GITHUB_CLIENT_ID
+#   npx wrangler secret put GITHUB_CLIENT_SECRET
