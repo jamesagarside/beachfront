@@ -50,8 +50,11 @@ jobs:
           ref: ${{ github.event.pull_request.head.sha }}
           fetch-depth: 0
 
-      # --- Mechanical pre-gate: governance paths are never agent-merged ------------------
-      - name: Mechanical pre-gate (governance paths stay human-gated)
+      # --- Mechanical pre-gate: governance + security paths are never agent-merged -------
+      # Deterministic floor (the AI layer below is the semantic backstop). Any path that is
+      # human-governed (ADR-0007) OR security-sensitive stays human-gated regardless of the
+      # review verdict — security changes must always reach a human, even if correct.
+      - name: Mechanical pre-gate (governance + security paths stay human-gated)
         id: pregate
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -64,12 +67,22 @@ jobs:
           while IFS= read -r f; do
             [ -z "$f" ] && continue
             case "$f" in
+              # Human-governed (ADR-0007)
               docs/adr/*|CONTEXT.md|docs/brand.md|docs/agents/*)
-                blocked="${blocked}  - $f"$'\n' ;;
+                blocked="${blocked}  - $f (human-governed)"$'\n' ;;
+              # Security-sensitive — authn/authz, secrets, key material
+              src/auth/*|*secret*|*credential*|*oauth*|*password*|*.pem|*.key)
+                blocked="${blocked}  - $f (security)"$'\n' ;;
+              # Supply chain — a compromised dep passes tests fine (ADR-0007)
+              package.json|package-lock.json|*/package.json|*/package-lock.json|yarn.lock|pnpm-lock.yaml)
+                blocked="${blocked}  - $f (supply-chain)"$'\n' ;;
+              # CI/CD, the autonomous-agent harness, env/config — privilege surfaces
+              .github/*|.sandcastle/*|.env|.env.*|*/.env|*/.env.*|beachfront.config.*)
+                blocked="${blocked}  - $f (privileged config/CI)"$'\n' ;;
             esac
           done < /tmp/files.txt
           if [ -n "$blocked" ]; then
-            echo "::notice::Diff touches human-governed paths; leaving for a human:"
+            echo "::notice::Diff touches human-governed or security-sensitive paths; leaving for a human:"
             printf '%s' "$blocked"
             echo "proceed=false" >> "$GITHUB_OUTPUT"
           else
@@ -108,9 +121,17 @@ jobs:
             echo "  - Is the change in scope (no unrelated or risky edits)?"
             echo "  - Are there meaningful tests for new behaviour?"
             echo
-            echo "Be conservative and FAIL-CLOSED: answer PASS only if you are confident the"
-            echo "change is correct, safe, in-scope, and complete. If anything is uncertain,"
-            echo "missing, or unverifiable (including a missing linked issue), answer FAIL."
+            echo "SECURITY BLOCK (overrides everything): if the change has ANY security"
+            echo "relevance — authentication, authorization, tokens/secrets/credentials,"
+            echo "cryptography, input validation or sanitisation, permissions, CORS, network"
+            echo "trust boundaries, dependency/supply-chain changes, or CI/workflow changes —"
+            echo "answer FAIL regardless of how correct it looks. Security-relevant work must"
+            echo "always go to a human. When unsure whether something is security-relevant,"
+            echo "treat it as security-relevant and answer FAIL."
+            echo
+            echo "Otherwise be conservative and FAIL-CLOSED: answer PASS only if you are"
+            echo "confident the change is correct, safe, in-scope, and complete. If anything is"
+            echo "uncertain, missing, or unverifiable (including a missing linked issue), FAIL."
             echo
             echo "Write a short review (bullet points), then your decision as the LAST line,"
             echo "EXACTLY one of:  VERDICT: PASS   or   VERDICT: FAIL"

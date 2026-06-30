@@ -30,11 +30,19 @@ such a PR it:
 
 1. **Gates mechanically first** (cheap, before spending a model): the PR author is the
    Beachfront App, and the diff touches **no governance path** (`docs/adr/**`, `CONTEXT.md`,
-   `docs/brand.md`, `docs/agents/**`). Either failing → leave for a human, no review.
+   `docs/brand.md`, `docs/agents/**`) **and no security-sensitive path** — authn/secrets
+   (`src/auth/**`, `*secret*`, `*credential*`, `*oauth*`, `*.pem`/`*.key`), supply chain
+   (`package.json`/lockfiles — a compromised dep passes tests fine), or privilege surfaces
+   (`.github/**`, `.sandcastle/**`, `.env*`, `beachfront.config.*`). Any of these → leave
+   for a human, no review.
 2. **Reviews independently**: a *separate* Claude invocation — a different model from the
    author's, with a review-specific prompt and **read-only** tools — reads the linked
    issue's acceptance criteria and the diff, and judges correctness, security, scope, and
-   whether the work actually satisfies the issue. It emits a single fail-closed verdict.
+   whether the work actually satisfies the issue. It emits a single fail-closed verdict. The
+   prompt carries a **security override**: any change with security relevance (authn/authz,
+   secrets, crypto, input validation, permissions, supply chain, CI) is a `FAIL` regardless
+   of correctness, and "unsure if it's security-relevant" is treated as security-relevant.
+   This is the semantic backstop to the mechanical security denylist in step 1.
 3. **Acts deterministically on the verdict**: only an explicit `PASS` enables
    **GitHub-native auto-merge** (`gh pr merge --auto`); anything else (including a parse
    failure or a missing linked issue) applies `needs-human` and comments the review. The
@@ -55,6 +63,9 @@ mechanical path (`automerge.yml`) is unchanged and still governs human and non-l
 - **Mechanical CI still required** — the AI verdict adds a gate, it never removes one.
 - **Governance paths excluded** — ADRs, CONTEXT, brand, agent contracts never auto-merge,
   regardless of verdict.
+- **Security never auto-merges** — two layers: a mechanical denylist (auth/secrets/keys,
+  supply chain, CI/harness/config paths) and a semantic security override in the review
+  prompt (fail-closed when unsure). Correct-but-security-relevant work still goes to a human.
 - **Fail-closed** — no clear `PASS`, no linked issue, or any error → human-gated.
 - **Auditable** — the verdict and reasoning are posted to the PR, so "why did this merge?"
   answers with the review, not a silent bot action.
