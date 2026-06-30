@@ -74,4 +74,26 @@ describe("Shell", () => {
     const nav = screen.getByRole("navigation", { name: /beachfront views/i });
     expect(within(nav).getByText(/none linked yet/i)).toBeInTheDocument();
   });
+
+  it("shows the demo indicator and the auth aside only when asked", () => {
+    const { rerender } = render(
+      <Shell route={SHORELINE} repos={repos}>
+        <p />
+      </Shell>,
+    );
+    expect(screen.queryByText(/demo data/i)).not.toBeInTheDocument();
+
+    rerender(
+      <Shell
+        route={SHORELINE}
+        repos={repos}
+        demo
+        aside={<span>sign-in here</span>}
+      >
+        <p />
+      </Shell>,
+    );
+    expect(screen.getByText(/demo data/i)).toBeInTheDocument();
+    expect(screen.getByText(/sign-in here/i)).toBeInTheDocument();
+  });
 });

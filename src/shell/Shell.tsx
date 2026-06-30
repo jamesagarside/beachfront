@@ -17,14 +17,20 @@ export function Shell({
   route,
   repos,
   children,
+  demo = false,
+  aside,
 }: {
   route: Route;
   repos: RepoRef[];
   children: ReactNode;
+  /** True in demo mode — surfaces a calm "demo data" indicator (#27). */
+  demo?: boolean;
+  /** The auth surface, pinned to the foot of the sidebar (sign in / out). */
+  aside?: ReactNode;
 }) {
   return (
     <div className="flex min-h-screen bg-sand font-sans text-deep-sea">
-      <Sidebar route={route} repos={repos} />
+      <Sidebar route={route} repos={repos} demo={demo} aside={aside} />
       <main className="flex-1 overflow-x-hidden px-6 py-8 sm:px-10">
         <div className="mx-auto max-w-5xl">{children}</div>
       </main>
@@ -32,16 +38,34 @@ export function Shell({
   );
 }
 
-function Sidebar({ route, repos }: { route: Route; repos: RepoRef[] }) {
+function Sidebar({
+  route,
+  repos,
+  demo,
+  aside,
+}: {
+  route: Route;
+  repos: RepoRef[];
+  demo: boolean;
+  aside?: ReactNode;
+}) {
   return (
     <nav
       aria-label="Beachfront views"
       className="flex w-60 shrink-0 flex-col gap-6 border-r border-deep-sea/10 bg-white/30 px-5 py-8"
     >
       <div>
-        <h1 className="text-2xl font-semibold lowercase tracking-tight">
-          beachfront
-        </h1>
+        <div className="flex items-center gap-2">
+          <BrandMark />
+          <h1 className="text-2xl font-semibold lowercase tracking-tight">
+            beachfront
+          </h1>
+        </div>
+        {demo && (
+          <span className="mt-2 inline-block rounded-full bg-sky/40 px-2 py-0.5 text-xs text-deep-sea/70">
+            demo data
+          </span>
+        )}
         {/* Horizon line — the recurring brand motif (sea/sky seam). */}
         <div aria-hidden="true" className="mt-4 h-px w-full bg-deep-sea/20" />
       </div>
@@ -74,7 +98,39 @@ function Sidebar({ route, repos }: { route: Route; repos: RepoRef[] }) {
           </ul>
         )}
       </div>
+
+      {aside && (
+        <div className="mt-auto border-t border-deep-sea/10 pt-6 text-sm">
+          {aside}
+        </div>
+      )}
     </nav>
+  );
+}
+
+/** The Beachfront mark (docs/brand.md): a pane framing a horizon, sun on the tide. */
+function BrandMark() {
+  return (
+    <svg
+      viewBox="0 0 32 32"
+      width="24"
+      height="24"
+      aria-hidden="true"
+      className="shrink-0"
+    >
+      <rect
+        x="1.5"
+        y="1.5"
+        width="29"
+        height="29"
+        rx="5"
+        fill="#e9dcc3"
+        stroke="#0b4f6c"
+        strokeWidth="1.5"
+      />
+      <circle cx="16" cy="19" r="5" fill="#ff8c61" />
+      <line x1="4" y1="19" x2="28" y2="19" stroke="#0b4f6c" strokeWidth="1.5" />
+    </svg>
   );
 }
 
