@@ -1,0 +1,490 @@
+{
+  "bakedAt": "2026-06-30T23:48:10Z",
+  "repos": [
+    {
+      "owner": "jamesagarside",
+      "repo": "beachfront",
+      "issues": [
+        {
+          "comments": 0,
+          "createdAt": "2026-06-30T09:18:42Z",
+          "labels": [
+            {
+              "color": "0B4F6C",
+              "name": "enhancement"
+            },
+            {
+              "color": "1B998B",
+              "name": "ready-for-agent"
+            }
+          ],
+          "number": 83,
+          "title": "Emit Claude token usage per Sandcastle run so Beachfront can surface it",
+          "url": "https://github.com/jamesagarside/beachfront/issues/83"
+        },
+        {
+          "comments": 0,
+          "createdAt": "2026-06-30T09:18:41Z",
+          "labels": [
+            {
+              "color": "0B4F6C",
+              "name": "enhancement"
+            },
+            {
+              "color": "1B998B",
+              "name": "ready-for-agent"
+            }
+          ],
+          "number": 82,
+          "title": "Per-repo view: Agent-run metrics panel (success / failure / throughput)",
+          "url": "https://github.com/jamesagarside/beachfront/issues/82"
+        },
+        {
+          "comments": 0,
+          "createdAt": "2026-06-30T09:18:39Z",
+          "labels": [
+            {
+              "color": "0B4F6C",
+              "name": "enhancement"
+            },
+            {
+              "color": "1B998B",
+              "name": "ready-for-agent"
+            }
+          ],
+          "number": 81,
+          "title": "Per-repo view: per-status issue count summary",
+          "url": "https://github.com/jamesagarside/beachfront/issues/81"
+        },
+        {
+          "comments": 0,
+          "createdAt": "2026-06-30T09:18:38Z",
+          "labels": [
+            {
+              "color": "0B4F6C",
+              "name": "enhancement"
+            },
+            {
+              "color": "1B998B",
+              "name": "ready-for-agent"
+            }
+          ],
+          "number": 80,
+          "title": "Per-repo view: Kanban board of issues by triage role",
+          "url": "https://github.com/jamesagarside/beachfront/issues/80"
+        },
+        {
+          "comments": 0,
+          "createdAt": "2026-06-29T17:22:01Z",
+          "labels": [
+            {
+              "color": "0B4F6C",
+              "name": "enhancement"
+            },
+            {
+              "color": "1B998B",
+              "name": "ready-for-agent"
+            }
+          ],
+          "number": 71,
+          "title": "Assign an authored issue to an agent (Copilot coding agent via Viewer PAT)",
+          "url": "https://github.com/jamesagarside/beachfront/issues/71"
+        },
+        {
+          "comments": 1,
+          "createdAt": "2026-06-29T16:45:07Z",
+          "labels": [
+            {
+              "color": "0B4F6C",
+              "name": "enhancement"
+            }
+          ],
+          "number": 66,
+          "title": "Overlay live Agent-run status across the per-repo view",
+          "url": "https://github.com/jamesagarside/beachfront/issues/66"
+        },
+        {
+          "comments": 1,
+          "createdAt": "2026-06-29T16:44:54Z",
+          "labels": [
+            {
+              "color": "0B4F6C",
+              "name": "enhancement"
+            }
+          ],
+          "number": 65,
+          "title": "Per-repo view: open issues badged by triage role",
+          "url": "https://github.com/jamesagarside/beachfront/issues/65"
+        },
+        {
+          "comments": 1,
+          "createdAt": "2026-06-29T16:44:52Z",
+          "labels": [
+            {
+              "color": "0B4F6C",
+              "name": "enhancement"
+            }
+          ],
+          "number": 64,
+          "title": "Shore view: list every Managed repo with a health summary",
+          "url": "https://github.com/jamesagarside/beachfront/issues/64"
+        },
+        {
+          "comments": 2,
+          "createdAt": "2026-06-29T16:44:39Z",
+          "labels": [
+            {
+              "color": "0B4F6C",
+              "name": "enhancement"
+            },
+            {
+              "color": "6F42C1",
+              "name": "in-progress"
+            }
+          ],
+          "number": 63,
+          "title": "Navigation shell: routing + persistent glass frame",
+          "url": "https://github.com/jamesagarside/beachfront/issues/63"
+        },
+        {
+          "comments": 1,
+          "createdAt": "2026-06-29T16:44:37Z",
+          "labels": [
+            {
+              "color": "0B4F6C",
+              "name": "enhancement"
+            }
+          ],
+          "number": 62,
+          "title": "Wire the logo mark into the app: wordmark component + favicon",
+          "url": "https://github.com/jamesagarside/beachfront/issues/62"
+        },
+        {
+          "comments": 3,
+          "createdAt": "2026-06-29T10:08:07Z",
+          "labels": [
+            {
+              "color": "0B4F6C",
+              "name": "enhancement"
+            },
+            {
+              "color": "FFB84D",
+              "name": "ready-for-human"
+            }
+          ],
+          "number": 28,
+          "title": "Configure template repo and document upstream-sync distribution",
+          "url": "https://github.com/jamesagarside/beachfront/issues/28"
+        },
+        {
+          "comments": 1,
+          "createdAt": "2026-06-29T10:08:06Z",
+          "labels": [
+            {
+              "color": "0B4F6C",
+              "name": "enhancement"
+            },
+            {
+              "color": "1B998B",
+              "name": "ready-for-agent"
+            }
+          ],
+          "number": 27,
+          "title": "Demo mode: app loads baked JSON when no token present",
+          "url": "https://github.com/jamesagarside/beachfront/issues/27"
+        },
+        {
+          "comments": 1,
+          "createdAt": "2026-06-29T10:08:04Z",
+          "labels": [
+            {
+              "color": "0B4F6C",
+              "name": "enhancement"
+            },
+            {
+              "color": "1B998B",
+              "name": "ready-for-agent"
+            }
+          ],
+          "number": 26,
+          "title": "Demo mode: scheduled Action bakes public-repo JSON",
+          "url": "https://github.com/jamesagarside/beachfront/issues/26"
+        },
+        {
+          "comments": 1,
+          "createdAt": "2026-06-29T10:08:03Z",
+          "labels": [
+            {
+              "color": "0B4F6C",
+              "name": "enhancement"
+            },
+            {
+              "color": "6F42C1",
+              "name": "in-progress"
+            }
+          ],
+          "number": 25,
+          "title": "App: Login with GitHub via configured Worker",
+          "url": "https://github.com/jamesagarside/beachfront/issues/25"
+        },
+        {
+          "comments": 1,
+          "createdAt": "2026-06-29T10:08:00Z",
+          "labels": [
+            {
+              "color": "0B4F6C",
+              "name": "enhancement"
+            },
+            {
+              "color": "1B998B",
+              "name": "ready-for-agent"
+            }
+          ],
+          "number": 23,
+          "title": "Beachfront init: open the linking PR (onboarding push)",
+          "url": "https://github.com/jamesagarside/beachfront/issues/23"
+        },
+        {
+          "comments": 1,
+          "createdAt": "2026-06-29T10:07:57Z",
+          "labels": [
+            {
+              "color": "0B4F6C",
+              "name": "enhancement"
+            },
+            {
+              "color": "1B998B",
+              "name": "ready-for-agent"
+            }
+          ],
+          "number": 21,
+          "title": "Beachfront init: scaffold and wrap sandcastle init",
+          "url": "https://github.com/jamesagarside/beachfront/issues/21"
+        },
+        {
+          "comments": 1,
+          "createdAt": "2026-06-29T10:07:56Z",
+          "labels": [
+            {
+              "color": "0B4F6C",
+              "name": "enhancement"
+            },
+            {
+              "color": "1B998B",
+              "name": "ready-for-agent"
+            }
+          ],
+          "number": 20,
+          "title": "Surface a Skill run's result in the issue view",
+          "url": "https://github.com/jamesagarside/beachfront/issues/20"
+        },
+        {
+          "comments": 1,
+          "createdAt": "2026-06-29T10:07:54Z",
+          "labels": [
+            {
+              "color": "0B4F6C",
+              "name": "enhancement"
+            },
+            {
+              "color": "1B998B",
+              "name": "ready-for-agent"
+            }
+          ],
+          "number": 19,
+          "title": "Trigger a Skill from the UI via workflow_dispatch",
+          "url": "https://github.com/jamesagarside/beachfront/issues/19"
+        },
+        {
+          "comments": 1,
+          "createdAt": "2026-06-29T10:07:53Z",
+          "labels": [
+            {
+              "color": "0B4F6C",
+              "name": "enhancement"
+            },
+            {
+              "color": "1B998B",
+              "name": "ready-for-agent"
+            }
+          ],
+          "number": 18,
+          "title": "Author the beachfront-skill workflow template",
+          "url": "https://github.com/jamesagarside/beachfront/issues/18"
+        },
+        {
+          "comments": 1,
+          "createdAt": "2026-06-29T10:07:46Z",
+          "labels": [
+            {
+              "color": "0B4F6C",
+              "name": "enhancement"
+            },
+            {
+              "color": "1B998B",
+              "name": "ready-for-agent"
+            }
+          ],
+          "number": 13,
+          "title": "Apply semantic brand colour to queue and agent states",
+          "url": "https://github.com/jamesagarside/beachfront/issues/13"
+        },
+        {
+          "comments": 2,
+          "createdAt": "2026-06-29T10:07:45Z",
+          "labels": [
+            {
+              "color": "0B4F6C",
+              "name": "enhancement"
+            },
+            {
+              "color": "FFB84D",
+              "name": "ready-for-human"
+            }
+          ],
+          "number": 12,
+          "title": "Brand foundation: design tokens, type, and horizon shell",
+          "url": "https://github.com/jamesagarside/beachfront/issues/12"
+        }
+      ],
+      "runs": [
+        {
+          "branch": "improve-issues-ui-layout",
+          "conclusion": "success",
+          "createdAt": "2026-06-30T23:43:14Z",
+          "id": 28483152644,
+          "name": "CI",
+          "status": "completed",
+          "url": "https://github.com/jamesagarside/beachfront/actions/runs/28483152644"
+        },
+        {
+          "branch": "improve-issues-ui-layout",
+          "conclusion": "skipped",
+          "createdAt": "2026-06-30T23:43:14Z",
+          "id": 28483152641,
+          "name": "Auto-review (independent agent gate for loop PRs)",
+          "status": "completed",
+          "url": "https://github.com/jamesagarside/beachfront/actions/runs/28483152641"
+        },
+        {
+          "branch": "improve-issues-ui-layout",
+          "conclusion": "success",
+          "createdAt": "2026-06-30T23:43:14Z",
+          "id": 28483152640,
+          "name": "Auto-merge (gated by mechanical allowlist)",
+          "status": "completed",
+          "url": "https://github.com/jamesagarside/beachfront/actions/runs/28483152640"
+        },
+        {
+          "branch": "main",
+          "conclusion": "skipped",
+          "createdAt": "2026-06-30T22:48:01Z",
+          "id": 28480841030,
+          "name": "Sandcastle (autonomous agent)",
+          "status": "completed",
+          "url": "https://github.com/jamesagarside/beachfront/actions/runs/28480841030"
+        },
+        {
+          "branch": "sandcastle/auto-28480343344",
+          "conclusion": "success",
+          "createdAt": "2026-06-30T22:48:00Z",
+          "id": 28480840722,
+          "name": "Auto-merge (gated by mechanical allowlist)",
+          "status": "completed",
+          "url": "https://github.com/jamesagarside/beachfront/actions/runs/28480840722"
+        },
+        {
+          "branch": "sandcastle/auto-28480343344",
+          "conclusion": "success",
+          "createdAt": "2026-06-30T22:48:00Z",
+          "id": 28480840704,
+          "name": "Auto-review (independent agent gate for loop PRs)",
+          "status": "completed",
+          "url": "https://github.com/jamesagarside/beachfront/actions/runs/28480840704"
+        },
+        {
+          "branch": "sandcastle/auto-28480343344",
+          "conclusion": "success",
+          "createdAt": "2026-06-30T22:48:00Z",
+          "id": 28480840701,
+          "name": "CI",
+          "status": "completed",
+          "url": "https://github.com/jamesagarside/beachfront/actions/runs/28480840701"
+        },
+        {
+          "branch": "main",
+          "conclusion": "success",
+          "createdAt": "2026-06-30T22:36:34Z",
+          "id": 28480343355,
+          "name": "Auto-update PR branches (keep auto-merge PRs current)",
+          "status": "completed",
+          "url": "https://github.com/jamesagarside/beachfront/actions/runs/28480343355"
+        },
+        {
+          "branch": "main",
+          "conclusion": "success",
+          "createdAt": "2026-06-30T22:36:33Z",
+          "id": 28480343346,
+          "name": "Deploy to GitHub Pages",
+          "status": "completed",
+          "url": "https://github.com/jamesagarside/beachfront/actions/runs/28480343346"
+        },
+        {
+          "branch": "main",
+          "conclusion": "success",
+          "createdAt": "2026-06-30T22:36:33Z",
+          "id": 28480343344,
+          "name": "Sandcastle (autonomous agent)",
+          "status": "completed",
+          "url": "https://github.com/jamesagarside/beachfront/actions/runs/28480343344"
+        },
+        {
+          "branch": "main",
+          "conclusion": "success",
+          "createdAt": "2026-06-30T22:36:33Z",
+          "id": 28480343338,
+          "name": "CI",
+          "status": "completed",
+          "url": "https://github.com/jamesagarside/beachfront/actions/runs/28480343338"
+        },
+        {
+          "branch": "onboarding-docs",
+          "conclusion": "success",
+          "createdAt": "2026-06-30T22:35:46Z",
+          "id": 28480308107,
+          "name": "Auto-merge (gated by mechanical allowlist)",
+          "status": "completed",
+          "url": "https://github.com/jamesagarside/beachfront/actions/runs/28480308107"
+        },
+        {
+          "branch": "onboarding-docs",
+          "conclusion": "success",
+          "createdAt": "2026-06-30T22:35:46Z",
+          "id": 28480308103,
+          "name": "CI",
+          "status": "completed",
+          "url": "https://github.com/jamesagarside/beachfront/actions/runs/28480308103"
+        },
+        {
+          "branch": "onboarding-docs",
+          "conclusion": "skipped",
+          "createdAt": "2026-06-30T22:35:46Z",
+          "id": 28480308066,
+          "name": "Auto-review (independent agent gate for loop PRs)",
+          "status": "completed",
+          "url": "https://github.com/jamesagarside/beachfront/actions/runs/28480308066"
+        },
+        {
+          "branch": "main",
+          "conclusion": "success",
+          "createdAt": "2026-06-30T22:31:54Z",
+          "id": 28480130978,
+          "name": "CI",
+          "status": "completed",
+          "url": "https://github.com/jamesagarside/beachfront/actions/runs/28480130978"
+        }
+      ],
+      "triageLabels": "# Triage labels\n\nCanonical triage roles map 1:1 to GitHub label strings (defaults — no remap).\n\n## Category roles\n\n| Role          | Label         |\n| ------------- | ------------- |\n| `bug`         | `bug`         |\n| `enhancement` | `enhancement` |\n\n## State roles\n\n| Role              | Label             |\n| ----------------- | ----------------- |\n| `needs-triage`    | `needs-triage`    |\n| `needs-info`      | `needs-info`      |\n| `ready-for-agent` | `ready-for-agent` |\n| `ready-for-human` | `ready-for-human` |\n| `wontfix`         | `wontfix`         |\n\nEvery triaged issue carries exactly one category role and one state role.\n"
+    }
+  ]
+}
