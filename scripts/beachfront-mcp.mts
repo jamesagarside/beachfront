@@ -31,6 +31,17 @@ import {
   repoDeckToolConfig,
   runRepoDeckTool,
 } from "../src/mcp/repoDeckTool.ts";
+import {
+  CREATE_ISSUES_TOOL_NAME,
+  createIssuesToolConfig,
+  runCreateIssuesTool,
+} from "../src/mcp/authorIssues.ts";
+import {
+  runSetTriageRoleTool,
+  SET_TRIAGE_ROLE_TOOL_NAME,
+  setTriageRoleToolConfig,
+} from "../src/mcp/triageRole.ts";
+import { CANONICAL_STATE_ROLES } from "../src/triage/mapping.ts";
 import { parseRegistry } from "../src/registry/registry.ts";
 
 /**
@@ -91,6 +102,68 @@ server.registerTool(
   },
   async ({ owner, repo }) => {
     const { content } = await runRepoDeckTool(source, { owner, repo });
+    return { content };
+  },
+);
+
+// Author issues (#89): the conversation drafts a `to-issues`-shape breakdown,
+// this tool is the single checkpoint — called without `confirm` it previews and
+// writes nothing; with `confirm` it creates all the drafts via local `gh`.
+server.registerTool(
+  CREATE_ISSUES_TOOL_NAME,
+  {
+    ...createIssuesToolConfig,
+    inputSchema: {
+      owner: z.string(),
+      repo: z.string(),
+      drafts: z
+        .array(
+          z.object({
+            title: z.string(),
+            body: z.string(),
+            labels: z.array(z.string()).optional(),
+          }),
+        )
+        .describe("The issues to create — the to-issues breakdown."),
+      confirm: z
+        .boolean()
+        .optional()
+        .describe("Set true to create all the drafts. Omit to preview only."),
+    },
+  },
+  async ({ owner, repo, drafts, confirm }) => {
+    const { content } = await runCreateIssuesTool(
+      run,
+      { owner, repo },
+      drafts,
+      confirm === true,
+    );
+    return { content };
+  },
+);
+
+// Triage an issue (#89): write the repo's mapped label (#6) for a canonical
+// state role via local `gh`, reconciling the state column the same way the web
+// view does.
+server.registerTool(
+  SET_TRIAGE_ROLE_TOOL_NAME,
+  {
+    ...setTriageRoleToolConfig,
+    inputSchema: {
+      owner: z.string(),
+      repo: z.string(),
+      issue: z.number().int().describe("The issue number to move."),
+      role: z.enum(CANONICAL_STATE_ROLES).describe("The target triage state role."),
+    },
+  },
+  async ({ owner, repo, issue, role }) => {
+    const { content } = await runSetTriageRoleTool(
+      run,
+      source,
+      { owner, repo },
+      issue,
+      role,
+    );
     return { content };
   },
 );
