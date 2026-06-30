@@ -9,12 +9,15 @@ per-repo Kanban) that rich hosts like Claude Desktop render inline.
 
 ## What it does
 
-The server registers two tools, each carrying its UI resource and a text fallback:
+The server registers these tools — text-driven first, with UI resources and a text
+fallback where a rich host can render them:
 
-| Tool | What it returns |
+| Tool | What it does |
 | --- | --- |
 | `beachfront_estate` | Aggregates the estate across every linked repo — open issues by triage role and running-agent counts — as a calm single pane of glass. Rich hosts get the **Shoreline App** (`ui://beachfront/estate`): the tide-line summary, the cross-repo Attention queue, and the repo shore grid; selecting a repo opens its deck. |
 | `beachfront_repo_deck` | Zooms to one repo's mission deck — its open issues as a **Kanban App** by triage role with a pinned run/metrics strip — with a calm text fallback. |
+| `beachfront_create_issues` | Authors issues for a chosen repo. The conversation drafts a `to-issues`-shape breakdown; called without `confirm` the tool previews and writes nothing, called with `confirm` it creates them all via `gh issue create` — exactly one checkpoint, no copy-paste. |
+| `beachfront_set_triage_role` | Moves an issue to a canonical triage state role by writing the repo's mapped label (ADR-0003, #6) via `gh issue edit` — the same state-column reconcile the web view does. |
 
 It reads the **Registry** (`repos/<owner>/<repo>.json`, ADR-0002) from the working
 directory to know which repos to aggregate, then reads each repo through `gh`:
@@ -55,5 +58,7 @@ Once connected, call the tool or just ask — e.g. *"show me the estate."*
 - `src/mcp/estateTool.ts` — the SDK-free tool handler (Shoreline resource + text).
 - `src/mcp/repoDeckTool.ts` / `deckHtml.ts` — the per-repo deck tool and its
   Kanban App renderer (#88).
+- `src/mcp/authorIssues.ts` — the SDK-free draft → confirm → create handler (#89).
+- `src/mcp/triageRole.ts` — the SDK-free state-role reconcile via `gh` (#89).
 - `scripts/beachfront-mcp.mts` — the entry that wires real `fs`/`gh`/stdio and the
-  MCP SDK around that handler.
+  MCP SDK around those handlers.
