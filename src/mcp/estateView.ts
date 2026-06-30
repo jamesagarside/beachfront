@@ -12,6 +12,7 @@
  * is a colour concern for the renderers above; this layer only produces numbers
  * and plainspoken lines (docs/brand.md).
  */
+import type { AttentionBucket, AttentionItem } from "../github/attentionQueue.ts";
 import type { Estate } from "../core/estate.ts";
 import {
   buildRepoDeck,
@@ -24,6 +25,17 @@ import { buildShoreline, type TideLine } from "../core/shoreline.ts";
 export interface RepoRoleCount {
   role: DeckColumnKey;
   count: number;
+}
+
+/** One cross-repo Attention-queue item — an issue that needs a human (#8). */
+export interface EstateAttentionItem {
+  owner: string;
+  repo: string;
+  number: number;
+  title: string;
+  url: string;
+  /** Which Attention bucket surfaced it: untriaged / needs-triage / needs-info. */
+  bucket: AttentionBucket;
 }
 
 /** One repo's line in the estate: counts plus its triage-role breakdown. */
@@ -42,14 +54,37 @@ export interface EstateRepoView {
 /** The whole estate as a serialisable, render-agnostic shape. */
 export interface EstateView {
   tideLine: TideLine;
+  /** The cross-repo Attention queue — what needs you, oldest-first (#8). */
+  attention: EstateAttentionItem[];
   repos: EstateRepoView[];
   /** Repos the source couldn't read — surfaced, never silently dropped. */
   skipped: { owner: string; repo: string }[];
 }
 
+/** Flattens one Attention bucket's items into the serialisable view shape. */
+function toAttention(
+  items: AttentionItem[],
+  bucket: AttentionBucket,
+): EstateAttentionItem[] {
+  return items.map(({ repo, issue }) => ({
+    owner: repo.owner,
+    repo: repo.repo,
+    number: issue.number,
+    title: issue.title,
+    url: issue.url,
+    bucket,
+  }));
+}
+
 /** Builds the estate view-model from an aggregated estate. */
 export function buildEstateView(estate: Estate): EstateView {
   const shoreline = buildShoreline(estate);
+  // Flatten the cross-repo queue in bucket order; each bucket is oldest-first.
+  const attention: EstateAttentionItem[] = [
+    ...toAttention(shoreline.attention.untriaged, "untriaged"),
+    ...toAttention(shoreline.attention.needsTriage, "needs-triage"),
+    ...toAttention(shoreline.attention.needsInfo, "needs-info"),
+  ];
 
   const repos: EstateRepoView[] = estate.repos.map((repoEstate, i) => {
     const deck = buildRepoDeck(repoEstate);
@@ -69,6 +104,7 @@ export function buildEstateView(estate: Estate): EstateView {
 
   return {
     tideLine: shoreline.tideLine,
+    attention,
     repos,
     skipped: estate.skipped.map(({ owner, repo }) => ({ owner, repo })),
   };

@@ -72,9 +72,10 @@ const source = ghDataSource(run, repos);
 const server = new McpServer({ name: "beachfront", version: "0.0.0" });
 
 server.registerTool(ESTATE_TOOL_NAME, estateToolConfig, async () => {
-  // The text content is the floor that works in every host (ADR-0010); the
-  // structured view-model lands once the UI-resource slices (#87/#88) add the
-  // matching output schema the protocol needs to carry it.
+  // The estate returns the Shoreline MCP App resource (#87) plus the calm text
+  // floor that works in every host (ADR-0010). The embedded resource carries the
+  // rendered Shoreline, so rich hosts draw it and the terminal still reads the
+  // text — no separate output schema needed.
   const { content } = await runEstateTool(source);
   return { content };
 });
