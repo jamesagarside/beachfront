@@ -43,9 +43,15 @@ export function parseHash(hash: string): Route {
 
   const match = /^repo\/([^/]+)\/([^/]+)\/?$/.exec(path);
   if (match) {
-    const owner = decodeURIComponent(match[1]);
-    const repo = decodeURIComponent(match[2]);
-    if (owner && repo) return { kind: "repo", owner, repo };
+    // Malformed percent-encoding throws; a bad shared link falls back to the
+    // Shoreline like any other unresolved shape.
+    try {
+      const owner = decodeURIComponent(match[1]);
+      const repo = decodeURIComponent(match[2]);
+      if (owner && repo) return { kind: "repo", owner, repo };
+    } catch {
+      return SHORELINE;
+    }
   }
 
   return SHORELINE;

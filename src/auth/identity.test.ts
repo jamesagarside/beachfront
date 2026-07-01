@@ -4,11 +4,13 @@ import { fetchViewer } from "./identity.ts";
 function mockFetch(response: {
   ok?: boolean;
   status?: number;
+  headers?: Record<string, string>;
   json?: () => unknown;
 }) {
   return vi.fn().mockResolvedValue({
     ok: response.ok ?? true,
     status: response.status ?? 200,
+    headers: new Headers(response.headers ?? {}),
     json: () => Promise.resolve(response.json ? response.json() : {}),
   } as unknown as Response);
 }
@@ -52,5 +54,29 @@ describe("fetchViewer", () => {
   it("throws a clear message when the token is rejected", async () => {
     vi.stubGlobal("fetch", mockFetch({ ok: false, status: 401 }));
     await expect(fetchViewer("bad")).rejects.toThrow(/rejected/i);
+  });
+
+  it("reports a spent rate limit as rate limiting, not a bad token", async () => {
+    vi.stubGlobal(
+      "fetch",
+      mockFetch({
+        ok: false,
+        status: 403,
+        headers: { "x-ratelimit-remaining": "0" },
+      }),
+    );
+    await expect(fetchViewer("t")).rejects.toThrow(/rate-limiting/i);
+  });
+
+  it("keeps a 403 with quota remaining on the token-rejected path", async () => {
+    vi.stubGlobal(
+      "fetch",
+      mockFetch({
+        ok: false,
+        status: 403,
+        headers: { "x-ratelimit-remaining": "42" },
+      }),
+    );
+    await expect(fetchViewer("t")).rejects.toThrow(/rejected/i);
   });
 });

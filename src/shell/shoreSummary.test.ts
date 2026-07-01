@@ -54,7 +54,7 @@ describe("buildShoreSummary", () => {
       repo: { owner: "acme", repo: "alpha" },
       openIssues: 2,
       attention: 1,
-      running: 2, // running + queued; succeeded is settled
+      running: 1, // running only — queued is waiting, succeeded is settled
     });
     expect(summary.repos[1]).toMatchObject({ attention: 0, running: 0 });
     expect(summary.calmCount).toBe(1);

@@ -54,13 +54,13 @@ export function AuthPanel() {
         value={draft}
         onChange={(e) => setDraft(e.target.value)}
         placeholder="github_pat_…"
-        className="rounded border border-deep-sea/30 bg-white/60 px-3 py-2 text-deep-sea outline-none focus:border-deep-sea"
+        className="rounded-md bg-white/70 px-3 py-2 text-deep-sea shadow-sm ring-1 ring-deep-sea/20 outline-none placeholder:text-deep-sea/35 focus:ring-2 focus:ring-tide-teal"
       />
       <div className="flex items-center gap-4">
         <button
           type="submit"
           disabled={status === "checking"}
-          className="rounded bg-tide-teal px-4 py-2 text-white disabled:opacity-60"
+          className="rounded-md bg-tide-teal px-4 py-2 font-medium text-white shadow-sm transition hover:bg-tide-teal/90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-tide-teal focus-visible:ring-offset-2 disabled:opacity-60"
         >
           {status === "checking" ? "Checking…" : "Sign in"}
         </button>

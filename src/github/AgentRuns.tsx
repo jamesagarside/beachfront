@@ -22,9 +22,12 @@ export function AgentRuns({
 
   return (
     <section aria-labelledby="runs-heading" className="text-left">
-      <h2 id="runs-heading" className="text-sm text-deep-sea/70">
+      <h2
+        id="runs-heading"
+        className="text-[11px] font-medium uppercase tracking-[0.14em] text-driftwood"
+      >
         Recent agent runs in{" "}
-        <strong className="font-medium">
+        <strong className="font-semibold text-deep-sea/60 normal-case tracking-normal">
           {repo.owner}/{repo.repo}
         </strong>
       </h2>
@@ -44,7 +47,7 @@ export function AgentRuns({
       )}
 
       {data && data.length > 0 && (
-        <ul className="mt-3 flex flex-col gap-3">
+        <ul className="mt-4 flex max-h-[26rem] flex-col gap-1.5 overflow-y-auto pr-1">
           {data.map((run) => (
             <RunRow key={run.id} run={run} />
           ))}
@@ -56,12 +59,12 @@ export function AgentRuns({
 
 export function RunRow({ run }: { run: AgentRun }) {
   return (
-    <li className="rounded border border-deep-sea/15 bg-white/50 px-3 py-2">
+    <li className="rounded-md bg-white/60 px-3 py-2 shadow-sm ring-1 ring-deep-sea/10 transition hover:bg-white/85">
       <a
         href={run.url}
         target="_blank"
         rel="noreferrer"
-        className="text-deep-sea hover:underline"
+        className="text-sm text-deep-sea hover:underline"
       >
         {run.name}
         {run.branch && (

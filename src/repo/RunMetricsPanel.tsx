@@ -25,7 +25,10 @@ export function RunMetricsPanel({ runs }: { runs: AgentRun[] }) {
 
   return (
     <section aria-labelledby="run-metrics-heading" className="text-left">
-      <h3 id="run-metrics-heading" className="text-sm text-deep-sea/70">
+      <h3
+        id="run-metrics-heading"
+        className="text-[11px] font-medium uppercase tracking-[0.14em] text-driftwood"
+      >
         Run metrics
       </h3>
 
@@ -33,7 +36,7 @@ export function RunMetricsPanel({ runs }: { runs: AgentRun[] }) {
         <p className="mt-3 text-deep-sea/60">No agent runs yet — all quiet.</p>
       ) : (
         <>
-          <dl className="mt-3 flex flex-wrap gap-6">
+          <dl className="mt-4 flex flex-wrap gap-3">
             <Tile label="Succeeded" className="text-tide-teal">
               {metrics.succeeded}
             </Tile>
@@ -73,9 +76,11 @@ function Tile({
   children: React.ReactNode;
 }) {
   return (
-    <div className="flex flex-col">
+    <div className="flex min-w-[7rem] flex-col rounded-lg bg-white/60 px-4 py-3 shadow-sm ring-1 ring-deep-sea/10">
       <dt className="text-xs text-deep-sea/60">{label}</dt>
-      <dd className={`text-2xl font-semibold ${className ?? "text-deep-sea"}`}>
+      <dd
+        className={`mt-0.5 text-2xl font-semibold ${className ?? "text-deep-sea"}`}
+      >
         {children}
       </dd>
     </div>

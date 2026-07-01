@@ -1,7 +1,7 @@
 import { useQueries } from "@tanstack/react-query";
 import type { RepoRef } from "../config.ts";
 import type { TriageMapping } from "../triage/mapping.ts";
-import { fetchOpenIssues, type Issue } from "./issues.ts";
+import { fetchOpenIssues, GitHubRateLimitError, type Issue } from "./issues.ts";
 import { fetchTriageMapping } from "./triageMapping.ts";
 
 /** One Registry repo, the open issues that loaded for it, and its Mapping. */
@@ -17,6 +17,8 @@ export interface RegistryIssuesResult {
   loaded: RepoIssues[];
   /** Repos whose fetch failed — inaccessible/private — and were skipped. */
   skipped: RepoRef[];
+  /** Repos GitHub rate-limited this pass — throttled, not inaccessible. */
+  rateLimited: RepoRef[];
   /** True while at least one repo's fetch is still in flight. */
   isPending: boolean;
 }
@@ -26,8 +28,10 @@ export interface RegistryIssuesResult {
  * gets two concurrent, individually-cached queries: its open issues and its
  * triage Mapping (#7). A repo the Viewer's token can't read fails its issues
  * query and is reported as `skipped` rather than breaking the aggregate view; a
- * missing Mapping simply leaves classification to fall back to raw labels.
- * Disabled until a token is present (ADR-0001).
+ * repo GitHub is rate-limiting is reported as `rateLimited` instead, since the
+ * token can read it fine once the quota resets; a missing Mapping simply leaves
+ * classification to fall back to raw labels. Disabled until a token is present
+ * (ADR-0001).
  */
 export function useRegistryIssues(
   token: string | null,
@@ -49,6 +53,7 @@ export function useRegistryIssues(
     combine: (results): RegistryIssuesResult => {
       const loaded: RepoIssues[] = [];
       const skipped: RepoRef[] = [];
+      const rateLimited: RepoRef[] = [];
       let isPending = false;
 
       repos.forEach((repo, i) => {
@@ -63,13 +68,17 @@ export function useRegistryIssues(
               : null,
           });
         } else if (issuesResult.isError) {
-          skipped.push(repo);
+          if (issuesResult.error instanceof GitHubRateLimitError) {
+            rateLimited.push(repo);
+          } else {
+            skipped.push(repo);
+          }
         } else {
           isPending = true;
         }
       });
 
-      return { loaded, skipped, isPending };
+      return { loaded, skipped, rateLimited, isPending };
     },
   });
 }

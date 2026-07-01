@@ -35,9 +35,9 @@ export function RepoDeck({
   const slug = `${repo.owner}/${repo.repo}`;
 
   return (
-    <div className="flex flex-col gap-12">
+    <div className="flex flex-col gap-10">
       <header>
-        <h2 className="text-2xl font-light text-deep-sea">
+        <h2 className="text-3xl font-light tracking-tight text-deep-sea">
           <span className="text-deep-sea/50">{repo.owner}/</span>
           <span className="font-medium">{repo.repo}</span>
         </h2>
@@ -46,6 +46,11 @@ export function RepoDeck({
             <StatusCounts issues={issues} mapping={mapping ?? null} />
           </div>
         )}
+        {/* Horizon line — the brand's sea/sky seam, closing the masthead. */}
+        <div
+          aria-hidden="true"
+          className="mt-5 h-px w-full bg-gradient-to-r from-deep-sea/25 via-deep-sea/10 to-transparent"
+        />
       </header>
 
       {isPending && <p className="text-deep-sea/60">Reading the shoreline…</p>}
@@ -71,7 +76,7 @@ export function RepoDeck({
           <section aria-labelledby="deck-board-heading">
             <h3
               id="deck-board-heading"
-              className="mb-3 text-sm text-deep-sea/70"
+              className="mb-4 text-[11px] font-medium uppercase tracking-[0.14em] text-driftwood"
             >
               Issues by triage role
             </h3>
@@ -82,7 +87,7 @@ export function RepoDeck({
             )}
           </section>
 
-          <div className="grid grid-cols-1 gap-12 lg:grid-cols-2">
+          <div className="grid grid-cols-1 gap-10 lg:grid-cols-2">
             <RunMetricsPanel runs={runs ?? []} />
             <AgentRuns token={token} repo={repo} />
           </div>

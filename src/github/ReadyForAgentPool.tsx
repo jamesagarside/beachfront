@@ -23,11 +23,11 @@ export function ReadyForAgentPool({
     <section aria-labelledby="ready-pool-heading" className="text-left">
       <h2
         id="ready-pool-heading"
-        className="flex items-baseline gap-2 text-sm text-deep-sea/70"
+        className="flex items-baseline gap-2 text-[11px] font-medium uppercase tracking-[0.14em] text-driftwood"
       >
         <span>Ready for an agent</span>
         {pool.length > 0 && (
-          <span className="rounded-full bg-tide-teal/10 px-2 text-xs text-tide-teal">
+          <span className="rounded-full bg-tide-teal/10 px-2 py-0.5 text-xs font-semibold normal-case tracking-normal text-tide-teal">
             {pool.length}
           </span>
         )}
@@ -44,7 +44,7 @@ export function ReadyForAgentPool({
       )}
 
       {pool.length > 0 && (
-        <ul className="mt-3 flex flex-col gap-2">
+        <ul className="mt-4 flex max-h-[26rem] flex-col gap-1.5 overflow-y-auto pr-1">
           {pool.map((item) => (
             <PoolRow
               key={`${item.repo.owner}/${item.repo.repo}#${item.issue.number}`}
@@ -61,21 +61,21 @@ function PoolRow({ item }: { item: PoolItem }) {
   const slug = `${item.repo.owner}/${item.repo.repo}`;
 
   return (
-    <li className="rounded border border-deep-sea/15 bg-white/50 px-3 py-2">
+    <li className="rounded-md bg-white/60 shadow-sm ring-1 ring-deep-sea/10 transition hover:bg-white/85">
       <a
         href={item.issue.url}
         target="_blank"
         rel="noreferrer"
-        className="text-deep-sea hover:underline"
+        className="flex flex-wrap items-baseline gap-x-2 px-3 py-2 text-sm text-deep-sea hover:underline"
       >
-        <span className="text-deep-sea/50">
+        <span className="shrink-0 text-deep-sea/50">
           {slug} #{item.issue.number}
-        </span>{" "}
-        {item.issue.title}
+        </span>
+        <span className="min-w-0 flex-1">{item.issue.title}</span>
+        <span className="shrink-0 text-xs text-driftwood">
+          opened {formatAge(item.issue.createdAt)}
+        </span>
       </a>
-      <span className="ml-2 text-xs text-driftwood">
-        opened {formatAge(item.issue.createdAt)}
-      </span>
     </li>
   );
 }

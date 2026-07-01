@@ -29,10 +29,10 @@ export function Shell({
   aside?: ReactNode;
 }) {
   return (
-    <div className="flex min-h-screen bg-sand font-sans text-deep-sea">
+    <div className="flex min-h-screen flex-col bg-sand font-sans text-deep-sea md:flex-row">
       <Sidebar route={route} repos={repos} demo={demo} aside={aside} />
-      <main className="flex-1 overflow-x-hidden px-6 py-8 sm:px-10">
-        <div className="mx-auto max-w-5xl">{children}</div>
+      <main className="min-w-0 flex-1 overflow-x-hidden px-5 py-8 sm:px-10 md:py-12">
+        <div className="mx-auto max-w-6xl">{children}</div>
       </main>
     </div>
   );
@@ -52,7 +52,7 @@ function Sidebar({
   return (
     <nav
       aria-label="Beachfront views"
-      className="flex w-60 shrink-0 flex-col gap-6 border-r border-deep-sea/10 bg-white/30 px-5 py-8"
+      className="flex shrink-0 flex-col gap-6 border-b border-deep-sea/10 bg-white/40 px-5 py-6 md:sticky md:top-0 md:h-screen md:w-64 md:overflow-y-auto md:border-b-0 md:border-r md:py-8"
     >
       <div>
         <div className="flex items-center gap-2">
@@ -62,12 +62,15 @@ function Sidebar({
           </h1>
         </div>
         {demo && (
-          <span className="mt-2 inline-block rounded-full bg-sky/40 px-2 py-0.5 text-xs text-deep-sea/70">
+          <span className="mt-2 inline-block rounded-full bg-sky/50 px-2.5 py-0.5 text-xs font-medium text-deep-sea/80">
             demo data
           </span>
         )}
         {/* Horizon line — the recurring brand motif (sea/sky seam). */}
-        <div aria-hidden="true" className="mt-4 h-px w-full bg-deep-sea/20" />
+        <div
+          aria-hidden="true"
+          className="mt-4 h-px w-full bg-gradient-to-r from-deep-sea/30 to-transparent"
+        />
       </div>
 
       <NavLink
@@ -78,7 +81,7 @@ function Sidebar({
       />
 
       <div className="flex flex-col gap-2">
-        <h2 className="px-2 text-xs uppercase tracking-wide text-driftwood">
+        <h2 className="px-2.5 text-[11px] font-medium uppercase tracking-[0.12em] text-driftwood">
           Managed repos
         </h2>
         {repos.length === 0 ? (
@@ -150,10 +153,10 @@ function NavLink({
     <a
       href={hashFor(target)}
       aria-current={active ? "page" : undefined}
-      className={`block rounded px-2 py-1.5 text-sm transition-colors ${
+      className={`block rounded-md border-l-2 px-2.5 py-1.5 text-sm transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-tide-teal ${
         active
-          ? "bg-tide-teal/10 font-medium text-tide-teal"
-          : "text-deep-sea/80 hover:bg-deep-sea/5"
+          ? "border-tide-teal bg-tide-teal/10 font-medium text-tide-teal"
+          : "border-transparent text-deep-sea/80 hover:bg-deep-sea/5 hover:text-deep-sea"
       }`}
     >
       {label}

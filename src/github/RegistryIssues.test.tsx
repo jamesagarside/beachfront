@@ -2,7 +2,7 @@ import { screen, waitFor, within } from "@testing-library/react";
 import { vi } from "vitest";
 import { renderWithProviders } from "../test/render.tsx";
 import { RegistryIssues } from "./RegistryIssues.tsx";
-import { GitHubAuthError } from "./issues.ts";
+import { GitHubAuthError, GitHubRateLimitError } from "./issues.ts";
 import type { RepoRef } from "../config.ts";
 
 const fetchOpenIssues = vi.fn();
@@ -86,6 +86,31 @@ describe("RegistryIssues", () => {
     expect(screen.queryByRole("region", { name: /beta\/two/i })).toBeNull();
     await waitFor(() =>
       expect(screen.getByText(/skipped 1 repo/i)).toBeInTheDocument(),
+    );
+  });
+
+  it("does not count a rate-limited repo as skipped/inaccessible", async () => {
+    fetchOpenIssues.mockImplementation((_token: string, repo?: RepoRef) => {
+      if (repo?.repo === "two")
+        return Promise.reject(new GitHubAuthError("no access"));
+      if (repo?.repo === "three")
+        return Promise.reject(new GitHubRateLimitError("throttled"));
+      return Promise.resolve([issue(1, "Visible issue")]);
+    });
+
+    renderWithProviders(
+      <RegistryIssues
+        token="t"
+        repos={[...REPOS, { owner: "gamma", repo: "three" }]}
+      />,
+    );
+
+    expect(
+      await screen.findByRole("link", { name: /visible issue/i }),
+    ).toBeInTheDocument();
+    // Throttled ≠ inaccessible — only the auth-failed repo reads as skipped.
+    await waitFor(() =>
+      expect(screen.getByText(/skipped 1 repo\b/i)).toBeInTheDocument(),
     );
   });
 

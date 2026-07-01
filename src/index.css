@@ -12,3 +12,27 @@
 
   --font-sans: "Inter", ui-sans-serif, system-ui, sans-serif;
 }
+
+/* The page itself is the beach: a faint sky-to-sand wash gives the pane depth
+   without a single extra element, and antialiasing keeps deep-sea text crisp
+   on the warm background. */
+@layer base {
+  html {
+    -webkit-font-smoothing: antialiased;
+    text-rendering: optimizeLegibility;
+  }
+
+  body {
+    background-color: var(--color-sand);
+    background-image: linear-gradient(
+      to bottom,
+      color-mix(in srgb, var(--color-sky) 18%, var(--color-sand)),
+      var(--color-sand) 420px
+    );
+    background-attachment: fixed;
+  }
+
+  ::selection {
+    background: color-mix(in srgb, var(--color-tide-teal) 25%, transparent);
+  }
+}

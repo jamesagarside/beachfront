@@ -26,13 +26,24 @@ function escapeHtml(value: string): string {
 }
 
 /**
+ * A link target safe to render: escaping alone can't stop a `javascript:` URL,
+ * so anything but https is dropped. Issue URLs come from the GitHub API today;
+ * this holds if a future data source is less trustworthy.
+ */
+function safeHref(url: string): string {
+  return url.startsWith("https://") ? escapeHtml(url) : "#";
+}
+
+/**
  * The accent each column carries, per the brand's semantic palette: coral marks
  * the columns that need a human, tide teal the fed/handled ones, driftwood grey
  * the calm rest. Used only as a thin top-border so the board stays calm.
  */
-const CORAL = "#e8745c";
-const TIDE = "#3aa6a0";
-const DRIFTWOOD = "#9aa5a3";
+// Brand values from docs/brand.md — keep in step with src/index.css and
+// estateHtml.ts, which declare the same palette for their own documents.
+const CORAL = "#FF8C61";
+const TIDE = "#1B998B";
+const DRIFTWOOD = "#8A8580";
 
 const COLUMN_ACCENT: Record<DeckColumnKey, string> = {
   untriaged: DRIFTWOOD,
@@ -50,7 +61,7 @@ function columnTitle(role: DeckColumnKey): string {
 
 function renderCard(card: { number: number; title: string; url: string }): string {
   return (
-    `<a class="card" href="${escapeHtml(card.url)}" target="_blank" rel="noopener">` +
+    `<a class="card" href="${safeHref(card.url)}" target="_blank" rel="noopener">` +
     `<span class="num">#${card.number}</span>` +
     `<span class="title">${escapeHtml(card.title)}</span>` +
     `</a>`
