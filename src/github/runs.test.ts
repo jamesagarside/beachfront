@@ -1,6 +1,6 @@
 import { vi } from "vitest";
 import { fetchAgentRuns } from "./runs.ts";
-import { GitHubAuthError } from "./issues.ts";
+import { GitHubAuthError, GitHubRateLimitError } from "./issues.ts";
 
 const listWorkflowRunsForRepo = vi.fn();
 
@@ -29,11 +29,15 @@ function run(overrides: Record<string, unknown> = {}) {
 // Each test sets its own mock implementation, mirroring issues.test.ts — no
 // reset hook, so a rejected promise keeps vitest's unhandled-rejection guard.
 describe("fetchAgentRuns", () => {
-  it("requests recent workflow runs for the configured repo", async () => {
+  it("requests a single bounded page of recent workflow runs", async () => {
     listWorkflowRunsForRepo.mockResolvedValue({ data: { workflow_runs: [] } });
     await fetchAgentRuns("token", REPO);
     expect(listWorkflowRunsForRepo).toHaveBeenLastCalledWith(
-      expect.objectContaining({ owner: "jamesagarside", repo: "beachfront" }),
+      expect.objectContaining({
+        owner: "jamesagarside",
+        repo: "beachfront",
+        per_page: 10,
+      }),
     );
   });
 
@@ -91,6 +95,23 @@ describe("fetchAgentRuns", () => {
     listWorkflowRunsForRepo.mockRejectedValue({ status: 403 });
     await expect(fetchAgentRuns("bad", REPO)).rejects.toBeInstanceOf(
       GitHubAuthError,
+    );
+  });
+
+  it("reports a retry-after 429 as rate limiting, not a bad token", async () => {
+    listWorkflowRunsForRepo.mockRejectedValue({
+      status: 429,
+      response: { headers: { "retry-after": "60" } },
+    });
+    await expect(fetchAgentRuns("token", REPO)).rejects.toBeInstanceOf(
+      GitHubRateLimitError,
+    );
+    listWorkflowRunsForRepo.mockRejectedValue({
+      status: 429,
+      response: { headers: { "retry-after": "60" } },
+    });
+    await expect(fetchAgentRuns("token", REPO)).rejects.toThrow(
+      /rate-limiting/,
     );
   });
 

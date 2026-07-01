@@ -17,6 +17,15 @@ export async function fetchViewer(token: string): Promise<Viewer> {
     },
   });
 
+  // Rate limiting also arrives as a 403 (or 429), but with quota headers — a
+  // different problem from a bad token, so it gets a different message.
+  const rateLimited =
+    (res.status === 403 || res.status === 429) &&
+    (res.headers.get("x-ratelimit-remaining") === "0" ||
+      res.headers.get("retry-after") !== null);
+  if (rateLimited) {
+    throw new Error("GitHub is rate-limiting this token — try again shortly.");
+  }
   if (res.status === 401 || res.status === 403) {
     throw new Error(
       "GitHub rejected that token. Check it hasn't expired and has access.",

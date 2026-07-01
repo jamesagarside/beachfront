@@ -28,16 +28,21 @@ export function ShorelineHome({
   const summary = buildShoreSummary(issues, runs);
 
   return (
-    <div className="flex flex-col gap-12">
+    <div className="flex flex-col gap-10">
       <header>
-        <h2 className="text-sm uppercase tracking-wide text-driftwood">
+        <h2 className="text-[11px] font-medium uppercase tracking-[0.14em] text-driftwood">
           Shoreline
         </h2>
-        <p className="mt-1 text-2xl font-light text-deep-sea">
+        <p className="mt-1.5 text-3xl font-light tracking-tight text-deep-sea">
           {isPending && issues.length === 0
             ? "Reading the shoreline…"
             : tideLine(summary)}
         </p>
+        {/* Horizon line — the brand's sea/sky seam, closing the masthead. */}
+        <div
+          aria-hidden="true"
+          className="mt-5 h-px w-full bg-gradient-to-r from-deep-sea/25 via-deep-sea/10 to-transparent"
+        />
       </header>
 
       {/* "What needs you now" — given real estate, not a thin strip. */}
@@ -45,7 +50,10 @@ export function ShorelineHome({
 
       {/* The shore: every Managed repo as a card you can step into. */}
       <section aria-labelledby="shore-heading">
-        <h2 id="shore-heading" className="text-sm text-deep-sea/70">
+        <h2
+          id="shore-heading"
+          className="text-[11px] font-medium uppercase tracking-[0.14em] text-driftwood"
+        >
           The shore
         </h2>
         {summary.repos.length === 0 ? (
@@ -53,7 +61,7 @@ export function ShorelineHome({
             {isPending ? "Counting the castles…" : "No repos linked yet."}
           </p>
         ) : (
-          <ul className="mt-3 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+          <ul className="mt-4 grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-3">
             {summary.repos.map((health) => (
               <li key={`${health.repo.owner}/${health.repo.repo}`}>
                 <ShoreCard health={health} />
@@ -64,7 +72,7 @@ export function ShorelineHome({
       </section>
 
       {/* Quieter cross-repo signals. */}
-      <div className="grid grid-cols-1 gap-12 lg:grid-cols-2">
+      <div className="grid grid-cols-1 gap-10 lg:grid-cols-2">
         <ReadyForAgentPool token={token} repos={repos} />
         <RunningAgentsSummary token={token} repos={repos} />
       </div>

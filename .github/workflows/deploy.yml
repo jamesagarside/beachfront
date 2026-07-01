@@ -28,7 +28,12 @@ jobs:
       - run: npm ci
       - run: npm run typecheck
       - run: npm run test
+      # The building repo *is* the Instance: link PRs must target it, never the
+      # upstream Tool repo default. (The Pages base path derives from
+      # GITHUB_REPOSITORY inside vite.config.ts.)
       - run: npm run build
+        env:
+          VITE_BEACHFRONT_REPO: ${{ github.repository }}
       - uses: actions/upload-pages-artifact@v3
         with:
           path: dist

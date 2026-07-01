@@ -1,8 +1,9 @@
 /**
- * Instance configuration. For this slice Beachfront aggregates a single
- * configured repo (the cross-repo Registry arrives in a later slice, #4). The
- * repo is read from the `VITE_BEACHFRONT_REPO` build-time env (`owner/repo`),
- * defaulting to the Tool repo so the app shows real data with no setup.
+ * Instance configuration. `VITE_BEACHFRONT_REPO` (build-time, `owner/repo`)
+ * names the Instance repo itself — the target of link PRs. The Pages deploy
+ * workflow sets it to the building repo; the Tool-repo default only covers
+ * local dev, so an Instance built outside that workflow must set it or link
+ * PRs would aim at the public upstream.
  */
 export interface RepoRef {
   owner: string;

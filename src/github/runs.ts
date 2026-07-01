@@ -1,6 +1,11 @@
 import { Octokit } from "octokit";
 import type { RepoRef } from "../config.ts";
-import { GitHubAuthError } from "./issues.ts";
+import {
+  GitHubAuthError,
+  GitHubRateLimitError,
+  RATE_LIMIT_MESSAGE,
+  isRateLimitError,
+} from "./issues.ts";
 
 /**
  * Fetches a Managed repo's recent GitHub Actions workflow runs — the Agent runs
@@ -28,6 +33,9 @@ export async function fetchAgentRuns(
   const octokit = new Octokit({ auth: token });
 
   try {
+    // A single bounded page is deliberate — unlike issues, runs arrive
+    // newest-first and a Viewer only watches recent activity, so paginating
+    // through a repo's whole run history would just spend rate limit.
     const res = await octokit.rest.actions.listWorkflowRunsForRepo({
       owner,
       repo,
@@ -43,6 +51,9 @@ export async function fetchAgentRuns(
       createdAt: run.created_at,
     }));
   } catch (err: unknown) {
+    if (isRateLimitError(err)) {
+      throw new GitHubRateLimitError(RATE_LIMIT_MESSAGE);
+    }
     const status = (err as { status?: number }).status;
     if (status === 401 || status === 403) {
       throw new GitHubAuthError(

@@ -38,6 +38,15 @@ function escapeHtml(value: string): string {
     .replace(/'/g, "&#39;");
 }
 
+/**
+ * A link target safe to render: escaping alone can't stop a `javascript:` URL,
+ * so anything but https is dropped. Issue URLs come from the GitHub API today;
+ * this holds if a future data source is less trustworthy.
+ */
+function safeHref(url: string): string {
+  return url.startsWith("https://") ? escapeHtml(url) : "#";
+}
+
 /** Pluralise a count with its noun: `1 repo`, `2 repos`. */
 function count(n: number, noun: string): string {
   return `${n} ${noun}${n === 1 ? "" : "s"}`;
@@ -80,7 +89,7 @@ function renderTideLine(view: EstateView): string {
 function renderAttentionItem(item: EstateAttentionItem): string {
   const slug = escapeHtml(`${item.owner}/${item.repo}`);
   return (
-    `<a class="attn-item" href="${escapeHtml(item.url)}" target="_blank" rel="noopener">` +
+    `<a class="attn-item" href="${safeHref(item.url)}" target="_blank" rel="noopener">` +
     `<span class="bucket">${escapeHtml(item.bucket)}</span>` +
     `<span class="where">${slug} #${item.number}</span>` +
     `<span class="what">${escapeHtml(item.title)}</span>` +

@@ -40,7 +40,10 @@ export function RunningAgentsSummary({
 
   return (
     <section aria-labelledby="runs-summary-heading" className="text-left">
-      <h2 id="runs-summary-heading" className="text-sm text-deep-sea/70">
+      <h2
+        id="runs-summary-heading"
+        className="text-[11px] font-medium uppercase tracking-[0.14em] text-driftwood"
+      >
         Agents across the shore
       </h2>
 
@@ -55,11 +58,14 @@ export function RunningAgentsSummary({
       )}
 
       {summary.total > 0 && (
-        <dl className="mt-3 flex gap-6">
+        <dl className="mt-4 flex gap-3">
           {TILES.map(({ key, label, className }) => (
-            <div key={key} className="flex flex-col">
+            <div
+              key={key}
+              className="flex min-w-[7rem] flex-col rounded-lg bg-white/60 px-4 py-3 shadow-sm ring-1 ring-deep-sea/10"
+            >
               <dt className="text-xs text-deep-sea/60">{label}</dt>
-              <dd className={`text-2xl font-semibold ${className}`}>
+              <dd className={`mt-0.5 text-2xl font-semibold ${className}`}>
                 {summary[key]}
               </dd>
             </div>

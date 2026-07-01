@@ -68,14 +68,27 @@ function loadRegistryFromDisk(root: string): RepoRef[] {
     for (const entry of entries) {
       if (!entry.endsWith(".json")) continue;
       const abs = join(root, "repos", owner, entry);
-      files[`/repos/${owner}/${entry}`] = JSON.parse(readFileSync(abs, "utf8"));
+      try {
+        files[`/repos/${owner}/${entry}`] = JSON.parse(readFileSync(abs, "utf8"));
+      } catch {
+        // One malformed Registry file shouldn't take the whole estate down —
+        // warn and keep serving the rest.
+        console.error(`✗ Skipping unparseable Registry file ${abs}`);
+      }
     }
   }
   return parseRegistry(files).map(({ owner, repo }) => ({ owner, repo }));
 }
 
+// `gh issue list --json ...comments` on an active repo can exceed Node's default
+// 1MB maxBuffer (ENOBUFS), which the aggregator would report as a silently
+// skipped repo — give gh generous headroom instead.
 const run: RunCommand = (command, args) =>
-  execFileSync(command, args, { encoding: "utf8" });
+  execFileSync(command, args, { encoding: "utf8", maxBuffer: 64 * 1024 * 1024 });
+
+// GitHub owners and repo names allow alphanumerics, hyphen, underscore and dot —
+// the same segment rule the CLI's `parseRepoArg` enforces (src/cli/link.ts).
+const ghNameSegment = z.string().regex(/^[A-Za-z0-9._-]+$/);
 
 const repos = loadRegistryFromDisk(process.cwd());
 const source = ghDataSource(run, repos);
@@ -87,8 +100,8 @@ server.registerTool(ESTATE_TOOL_NAME, estateToolConfig, async () => {
   // floor that works in every host (ADR-0010). The embedded resource carries the
   // rendered Shoreline, so rich hosts draw it and the terminal still reads the
   // text — no separate output schema needed.
-  const { content } = await runEstateTool(source);
-  return { content };
+  const { content, structuredContent } = await runEstateTool(source);
+  return { content, structuredContent };
 });
 
 // The per-repo deck (#88): given a Registry repo, return its Kanban board as an
@@ -99,11 +112,14 @@ server.registerTool(
   REPO_DECK_TOOL_NAME,
   {
     ...repoDeckToolConfig,
-    inputSchema: { owner: z.string(), repo: z.string() },
+    inputSchema: { owner: ghNameSegment, repo: ghNameSegment },
   },
   async ({ owner, repo }) => {
-    const { content } = await runRepoDeckTool(source, { owner, repo });
-    return { content };
+    const { content, structuredContent } = await runRepoDeckTool(source, {
+      owner,
+      repo,
+    });
+    return { content, structuredContent };
   },
 );
 
@@ -115,8 +131,8 @@ server.registerTool(
   {
     ...createIssuesToolConfig,
     inputSchema: {
-      owner: z.string(),
-      repo: z.string(),
+      owner: ghNameSegment,
+      repo: ghNameSegment,
       drafts: z
         .array(
           z.object({
@@ -133,13 +149,13 @@ server.registerTool(
     },
   },
   async ({ owner, repo, drafts, confirm }) => {
-    const { content } = await runCreateIssuesTool(
+    const { content, structuredContent } = await runCreateIssuesTool(
       run,
       { owner, repo },
       drafts,
       confirm === true,
     );
-    return { content };
+    return { content, structuredContent };
   },
 );
 
@@ -151,21 +167,21 @@ server.registerTool(
   {
     ...setTriageRoleToolConfig,
     inputSchema: {
-      owner: z.string(),
-      repo: z.string(),
+      owner: ghNameSegment,
+      repo: ghNameSegment,
       issue: z.number().int().describe("The issue number to move."),
       role: z.enum(CANONICAL_STATE_ROLES).describe("The target triage state role."),
     },
   },
   async ({ owner, repo, issue, role }) => {
-    const { content } = await runSetTriageRoleTool(
+    const { content, structuredContent } = await runSetTriageRoleTool(
       run,
       source,
       { owner, repo },
       issue,
       role,
     );
-    return { content };
+    return { content, structuredContent };
   },
 );
 

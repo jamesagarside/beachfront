@@ -22,7 +22,11 @@ export interface RepoHealth {
   openIssues: number;
   /** Issues that need a human (untriaged / needs-triage / needs-info reply). */
   attention: number;
-  /** Agent runs in flight right now (running or queued). */
+  /**
+   * Agent runs executing right now. Running only — queued runs are waiting,
+   * not working, and the core Shoreline (both surfaces' canonical semantics)
+   * counts them the same way; the run summary panel breaks out the queue.
+   */
   running: number;
 }
 
@@ -61,9 +65,7 @@ export function buildShoreSummary(
       queue.untriaged.length + queue.needsTriage.length + queue.needsInfo.length;
 
     const repoRuns = runsByRepo.get(repoKey(entry.repo))?.runs ?? [];
-    const running = repoRuns.filter(
-      (run) => run.status === "running" || run.status === "queued",
-    ).length;
+    const running = repoRuns.filter((run) => run.status === "running").length;
 
     return {
       repo: entry.repo,

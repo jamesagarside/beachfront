@@ -17,17 +17,26 @@ import type { RepoHealth } from "./shoreSummary.ts";
 export function ShoreCard({ health }: { health: RepoHealth }) {
   const { repo, openIssues, attention, running } = health;
 
+  // The card's top seam is its horizon line; it warms to coral only when the
+  // repo needs a human, so a scan of the shore reads by colour alone.
+  const seam =
+    attention > 0
+      ? "border-t-coral"
+      : running > 0
+        ? "border-t-tide-teal"
+        : "border-t-deep-sea/15";
+
   return (
     <a
       href={repoHash(repo)}
-      className="block rounded border border-deep-sea/15 bg-white/50 px-4 py-3 transition-colors hover:border-deep-sea/30 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-tide-teal"
+      className={`block rounded-lg border-t-2 ${seam} bg-white/60 px-4 py-3.5 shadow-sm ring-1 ring-deep-sea/10 transition hover:bg-white/80 hover:shadow focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-tide-teal`}
     >
-      <span className="block text-deep-sea">
-        <span className="text-deep-sea/50">{repo.owner}/</span>
-        <span className="font-medium">{repo.repo}</span>
+      <span className="block truncate text-deep-sea">
+        <span className="text-sm text-deep-sea/50">{repo.owner}/</span>
+        <span className="font-semibold">{repo.repo}</span>
       </span>
 
-      <span className="mt-2 flex flex-wrap items-baseline gap-x-2 text-xs">
+      <span className="mt-2.5 flex flex-wrap items-baseline gap-x-2 text-xs">
         <span className="text-deep-sea/70">
           {openIssues} open
         </span>
@@ -37,14 +46,14 @@ export function ShoreCard({ health }: { health: RepoHealth }) {
             <span aria-hidden="true" className="text-driftwood">
               ·
             </span>
-            <span className="text-coral">{attention} need you</span>
+            <span className="font-medium text-coral">{attention} need you</span>
           </>
         )}
 
         <span aria-hidden="true" className="text-driftwood">
           ·
         </span>
-        <span className={running > 0 ? "text-tide-teal" : "text-driftwood"}>
+        <span className={running > 0 ? "font-medium text-tide-teal" : "text-driftwood"}>
           {running} {running === 1 ? "agent" : "agents"} running
         </span>
       </span>
