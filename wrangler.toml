@@ -10,3 +10,13 @@ compatibility_date = "2024-11-01"
 # GITHUB_CLIENT_ID / GITHUB_CLIENT_SECRET are set as Secrets, never committed:
 #   npx wrangler secret put GITHUB_CLIENT_ID
 #   npx wrangler secret put GITHUB_CLIENT_SECRET
+
+# Security pins (plain vars — set to YOUR Instance before deploying).
+# ALLOWED_ORIGINS: the Instance origin(s) allowed to use this Worker. The Worker
+#   reflects CORS only for these and refuses to exchange for any other origin —
+#   it never answers `*`. Comma/space-separate multiple origins.
+# REDIRECT_URI: the Instance callback the Worker pins when calling GitHub; a
+#   caller-supplied redirect_uri is ignored. Must match the OAuth app's callback.
+[vars]
+ALLOWED_ORIGINS = "https://your-instance.example"
+REDIRECT_URI = "https://your-instance.example/callback"
