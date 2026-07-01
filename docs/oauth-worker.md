@@ -58,9 +58,18 @@ npx wrangler deploy
 
 ## 3. Point the Instance at the Worker
 
-Record the deployed Worker URL in your Instance config. Beachfront then offers
-the "Login with GitHub" button (see #25); without a configured Worker URL, only
-PAT mode is offered.
+Set both build-time env vars when you build the static app:
+
+```sh
+VITE_BEACHFRONT_OAUTH_WORKER_URL=https://beachfront-oauth.<you>.workers.dev
+VITE_BEACHFRONT_OAUTH_CLIENT_ID=<the OAuth app Client ID>
+```
+
+With both present, Beachfront offers a **"Login with GitHub"** button alongside
+PAT mode (#25). With either missing, only PAT mode is offered. The flow stashes a
+random `state` in `sessionStorage`, redirects to GitHub, and on the callback
+verifies that `state`, exchanges the `code` via the Worker, and stores the
+returned token exactly as a pasted PAT.
 
 ## Notes
 

@@ -1,14 +1,17 @@
 import { useState } from "react";
 import { GENERATE_TOKEN_URL } from "./token.ts";
 import { useAuthContext } from "./AuthContext.tsx";
+import { useOAuthLogin } from "./useOAuthLogin.ts";
 
 /**
  * The Viewer's sign-in surface. PAT mode is always available (ADR-0001): paste
- * a read-only fine-grained token, confirm identity, persist it. OAuth login is
- * a later, opt-in slice.
+ * a read-only fine-grained token, confirm identity, persist it. When an OAuth
+ * Worker is configured (#25), a "Login with GitHub" button is also offered and
+ * the resulting token is stored exactly as a PAT.
  */
 export function AuthPanel() {
   const { viewer, status, error, signIn, signOut } = useAuthContext();
+  const oauth = useOAuthLogin(signIn);
   const [draft, setDraft] = useState("");
 
   if (status === "authenticated" && viewer) {
@@ -77,6 +80,30 @@ export function AuthPanel() {
         <p role="alert" className="text-sm text-coral">
           {error}
         </p>
+      )}
+      {oauth.enabled && (
+        <>
+          <div className="flex items-center gap-3 text-xs text-deep-sea/50">
+            <span aria-hidden="true" className="h-px flex-1 bg-deep-sea/20" />
+            or
+            <span aria-hidden="true" className="h-px flex-1 bg-deep-sea/20" />
+          </div>
+          <button
+            type="button"
+            onClick={oauth.startLogin}
+            disabled={oauth.status === "exchanging"}
+            className="rounded border border-deep-sea/30 px-4 py-2 text-deep-sea hover:bg-white/60 disabled:opacity-60"
+          >
+            {oauth.status === "exchanging"
+              ? "Completing sign-in…"
+              : "Login with GitHub"}
+          </button>
+          {oauth.status === "error" && oauth.error && (
+            <p role="alert" className="text-sm text-coral">
+              {oauth.error}
+            </p>
+          )}
+        </>
       )}
     </form>
   );

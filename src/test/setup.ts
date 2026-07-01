@@ -25,5 +25,11 @@ function createMemoryStorage(): Storage {
 }
 
 vi.stubGlobal("localStorage", createMemoryStorage());
+// sessionStorage is broken the same way; the OAuth login flow uses it to hold
+// the CSRF `state` between the redirect and the callback (ADR-0001, #25).
+vi.stubGlobal("sessionStorage", createMemoryStorage());
 
-beforeEach(() => localStorage.clear());
+beforeEach(() => {
+  localStorage.clear();
+  sessionStorage.clear();
+});
