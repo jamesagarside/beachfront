@@ -159,6 +159,10 @@ and opens a PR with the diff for you to review before merging. If the repo is al
 current harness it says so and changes nothing. Run it after pulling a new version of your
 Instance; check `.sandcastle/.beachfront-version` to see what a repo is running.
 
+To see *what* changed between vintages — and whether a repo is behind — read the
+[harness changelog](harness-changelog.md). Its entries are keyed to the same SHA the stamp
+records, so a repo's `.sandcastle/.beachfront-version` maps straight to an entry.
+
 > Updating your **Instance** (the app, plugin, and onboarder itself) is a separate flow —
 > your Instance consumes Tool-repo updates as a sync PR. See [`CONTEXT.md`](../CONTEXT.md)
 > and the ADRs for the distribution model.
@@ -185,3 +189,4 @@ Instance; check `.sandcastle/.beachfront-version` to see what a repo is running.
 - [`docs/registry-schema.md`](registry-schema.md) — the Registry file format
 - [`scripts/beachfront-onboard.sh`](../scripts/beachfront-onboard.sh) — the guided onboarder (its header lists every flag)
 - [`scripts/beachfront-update.sh`](../scripts/beachfront-update.sh) — re-apply the current harness to an already-onboarded repo
+- [`docs/harness-changelog.md`](harness-changelog.md) — what changed in the onboarded workflows / run config, keyed to the stamped version

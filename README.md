@@ -60,7 +60,8 @@ scripts/beachfront-update.sh owner/repo           # opens a PR that re-applies t
 ```
 
 It only refreshes files the repo already has, stamps the installed version, and leaves the
-diff for you to review before merging.
+diff for you to review before merging. The [harness changelog](docs/harness-changelog.md)
+records what changed between vintages, keyed to the stamped version.
 
 ## Develop
 
