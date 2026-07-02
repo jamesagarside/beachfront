@@ -267,6 +267,11 @@ mkdir -p .github/workflows
 cp "$SRC_ROOT/.github/workflows/sandcastle.yml" .github/workflows/
 INSTALLED="sandcastle.yml"
 ADD_PATHS=(.sandcastle .github/workflows/sandcastle.yml package.json docs/agents)
+
+# Stamp which vintage of the Beachfront harness this repo received, so `beachfront-update`
+# (and Beachfront itself) can tell what a repo is running and whether it's behind.
+STAMP="$(git -C "$SRC_ROOT" rev-parse --short HEAD 2>/dev/null || echo unknown)"
+printf '%s\n' "$STAMP" > .sandcastle/.beachfront-version
 if [ "$DO_AUTOMERGE_MD" = 1 ]; then cp "$SRC_ROOT/.github/workflows/automerge.yml" .github/workflows/; ADD_PATHS+=(.github/workflows/automerge.yml); INSTALLED="$INSTALLED, automerge.yml"; fi
 if [ "$DO_AUTO_REVIEW" = 1 ]; then cp "$SRC_ROOT/.github/workflows/auto-review.yml" .github/workflows/; ADD_PATHS+=(.github/workflows/auto-review.yml); INSTALLED="$INSTALLED, auto-review.yml"; fi
 if [ "$DO_AUTO_UPDATE" = 1 ]; then cp "$SRC_ROOT/.github/workflows/auto-update.yml" .github/workflows/; ADD_PATHS+=(.github/workflows/auto-update.yml); INSTALLED="$INSTALLED, auto-update.yml"; fi

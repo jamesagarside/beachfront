@@ -26,8 +26,7 @@ in [`CONTEXT.md`](../CONTEXT.md).
 ## 1. Your Instance
 
 Beachfront ships as a **Tool repo** (`jamesagarside/beachfront`) you stand your own
-**Instance** up from — your private copy, where all your config and secrets live
-([ADR-0005](adr/0005-distribution-template-repo.md)).
+**Instance** up from — your private copy, where all your config and secrets live.
 
 1. On the Tool repo, click **Use this template → Create a new repository**. Make it
    **private** (your Instance holds your Registry and is where you run onboarding).
@@ -41,10 +40,8 @@ Beachfront ships as a **Tool repo** (`jamesagarside/beachfront`) you stand your 
 
 The autonomous loop opens its PRs with a **GitHub App** rather than the built-in
 `GITHUB_TOKEN`, because a `GITHUB_TOKEN`-opened PR does **not** trigger CI (GitHub's
-anti-recursion rule) — and the auto-merge / auto-update workflows depend on CI running
-([ADR-0007](adr/0007-gated-auto-merge-by-mechanical-allowlist.md),
-[ADR-0012](adr/0012-independent-review-agent-gates-loop-prs.md)). You create this App
-**once** and install it on each repo you onboard.
+anti-recursion rule) — and the auto-merge / auto-update workflows depend on CI running.
+You create this App **once** and install it on each repo you onboard.
 
 1. Go to **GitHub → Settings → Developer settings → GitHub Apps → New GitHub App**.
 2. Name it (e.g. `beachfront-agent`). Homepage URL can be your Instance.
@@ -95,8 +92,8 @@ It interviews you, shows a plan, and only touches the repo after you confirm. Th
 
 | Choice | What it does | Pick "no" if… |
 | --- | --- | --- |
-| **Markdown auto-merge** | Docs-only loop PRs merge on green ([ADR-0007](adr/0007-gated-auto-merge-by-mechanical-allowlist.md)) | you want to review every PR |
-| **AI review gate** | An independent agent reviews each feature PR and either enables auto-merge or routes it to a human; **always blocks security-relevant changes** ([ADR-0012](adr/0012-independent-review-agent-gates-loop-prs.md)) | you want all feature PRs human-gated |
+| **Markdown auto-merge** | Docs-only loop PRs merge on green | you want to review every PR |
+| **AI review gate** | An independent agent reviews each feature PR and either enables auto-merge or routes it to a human; **always blocks security-relevant changes** | you want all feature PRs human-gated |
 | **Branch auto-update** | Keeps approved PRs current so the auto-merge queue drains | you aren't auto-merging |
 | **Required checks** | The CI check names auto-merge waits for (e.g. `build,test`) | the repo has no CI yet |
 
@@ -116,8 +113,7 @@ merge that PR** to go live.
 ## 5. Link it into your Beachfront
 
 Onboarding makes the repo *run* Sandcastle; **linking** makes it *appear* in your Estate
-by adding its file to your Instance's **Registry**
-([ADR-0002](adr/0002-explicit-registry-via-linking.md),
+by adding its file to your Instance's **Registry** (see the
 [registry schema](registry-schema.md)):
 
 ```sh
@@ -133,8 +129,7 @@ Merge that PR. The repo now shows up wherever you view the Estate — the
 ## 6. What happens next
 
 - The loop runs on a **merge to `main`**, when an issue becomes **`ready-for-agent`**, and
-  on a schedule backstop. Each run works **one** issue and opens a PR
-  ([ADR-0006](adr/0006-onboarding-installs-autonomous-headless-workflow.md)).
+  on a schedule backstop. Each run works **one** issue and opens a PR.
 - With the **AI review gate** on: clean feature PRs auto-merge; security-, governance-, or
   config-touching PRs get the **`needs-human`** label for you to decide.
 - **Feed the loop** by labelling well-specified issues `ready-for-agent`. Issues needing a
@@ -144,6 +139,29 @@ Merge that PR. The repo now shows up wherever you view the Estate — the
 
 See [`docs/agents/autonomous-loop.md`](agents/autonomous-loop.md) for the required
 workflow set and how they fit together.
+
+---
+
+## 7. Keeping the repo's harness current
+
+Onboarding copies a **snapshot** of the loop's workflows (`sandcastle.yml`, and whichever
+of `automerge.yml` / `auto-review.yml` / `auto-update.yml` you chose) plus the run config
+into the target repo. That snapshot doesn't self-update — so when Beachfront improves the
+harness, pull the changes in explicitly:
+
+```sh
+scripts/beachfront-update.sh owner/repo
+```
+
+It refreshes **only the harness files the repo already has** (it never turns on a feature
+you didn't onboard with), records the installed version in `.sandcastle/.beachfront-version`,
+and opens a PR with the diff for you to review before merging. If the repo is already on the
+current harness it says so and changes nothing. Run it after pulling a new version of your
+Instance; check `.sandcastle/.beachfront-version` to see what a repo is running.
+
+> Updating your **Instance** (the app, plugin, and onboarder itself) is a separate flow —
+> your Instance consumes Tool-repo updates as a sync PR. See [`CONTEXT.md`](../CONTEXT.md)
+> and the ADRs for the distribution model.
 
 ---
 
@@ -166,3 +184,4 @@ workflow set and how they fit together.
 - [`docs/plugin.md`](plugin.md) — the Beachfront plugin (MCP server)
 - [`docs/registry-schema.md`](registry-schema.md) — the Registry file format
 - [`scripts/beachfront-onboard.sh`](../scripts/beachfront-onboard.sh) — the guided onboarder (its header lists every flag)
+- [`scripts/beachfront-update.sh`](../scripts/beachfront-update.sh) — re-apply the current harness to an already-onboarded repo
