@@ -68,6 +68,28 @@ describe("setIssueStateRole", () => {
     expect(next).toEqual(["enhancement", "ready-for-agent"]);
   });
 
+  it("falls back to the default Mapping when the repo ships none", async () => {
+    addLabels.mockResolvedValue({});
+    removeLabel.mockResolvedValue({});
+
+    const next = await setIssueStateRole(
+      "tok",
+      REPO,
+      7,
+      ["needs-triage"],
+      null,
+      "ready-for-agent",
+    );
+
+    expect(removeLabel).toHaveBeenCalledWith(
+      expect.objectContaining({ name: "needs-triage" }),
+    );
+    expect(addLabels).toHaveBeenCalledWith(
+      expect.objectContaining({ labels: ["ready-for-agent"] }),
+    );
+    expect(next).toEqual(["ready-for-agent"]);
+  });
+
   it("maps a 403 to a clear write-scope error", async () => {
     removeLabel.mockRejectedValue({ status: 403 });
 

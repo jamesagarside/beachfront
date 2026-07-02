@@ -1,10 +1,7 @@
 import { Octokit } from "octokit";
 import type { RepoRef } from "../config.ts";
-import {
-  CANONICAL_STATE_ROLES,
-  type TriageMapping,
-  type TriageStateRole,
-} from "../triage/mapping.ts";
+import type { TriageMapping, TriageStateRole } from "../triage/mapping.ts";
+import { reconcileStateRole } from "../triage/reconcile.ts";
 
 /**
  * Issue writes for the per-repo view (#17): changing an issue's canonical triage
@@ -33,28 +30,24 @@ function wrapWriteError(err: unknown): never {
  * mapped state-role labels: removes any *other* state-role label currently on
  * the issue and adds the one mapped to `nextRole`. Category labels (`bug` /
  * `enhancement`) and any label outside the triage vocabulary are left
- * untouched, so this only ever changes the state column. Returns the issue's
- * labels after the change.
+ * untouched, so this only ever changes the state column. The reconcile itself
+ * is shared with the MCP tool ({@link reconcileStateRole}); a repo that ships no
+ * Mapping (`mapping == null`) falls back there to the default. Returns the
+ * issue's labels after the change.
  */
 export async function setIssueStateRole(
   token: string,
   { owner, repo }: RepoRef,
   issueNumber: number,
   currentLabels: string[],
-  mapping: TriageMapping,
+  mapping: TriageMapping | null,
   nextRole: TriageStateRole,
 ): Promise<string[]> {
   const octokit = new Octokit({ auth: token });
-  const stateLabels = new Set(
-    CANONICAL_STATE_ROLES.map((role) => mapping.labelForRole[role]),
-  );
-  const target = mapping.labelForRole[nextRole];
+  const { add, remove } = reconcileStateRole(currentLabels, mapping, nextRole);
 
   try {
-    const toRemove = currentLabels.filter(
-      (label) => stateLabels.has(label) && label !== target,
-    );
-    for (const name of toRemove) {
+    for (const name of remove) {
       await octokit.rest.issues.removeLabel({
         owner,
         repo,
@@ -63,18 +56,17 @@ export async function setIssueStateRole(
       });
     }
 
-    const alreadyPresent = currentLabels.includes(target);
-    if (!alreadyPresent) {
+    if (add !== null) {
       await octokit.rest.issues.addLabels({
         owner,
         repo,
         issue_number: issueNumber,
-        labels: [target],
+        labels: [add],
       });
     }
 
-    const kept = currentLabels.filter((label) => !toRemove.includes(label));
-    return alreadyPresent ? kept : [...kept, target];
+    const kept = currentLabels.filter((label) => !remove.includes(label));
+    return add === null ? kept : [...kept, add];
   } catch (err: unknown) {
     wrapWriteError(err);
   }
