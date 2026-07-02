@@ -12,8 +12,12 @@ function label(name: string) {
   return { name, color: "" };
 }
 
-function estate(issues: Issue[], runs: AgentRun[] = []): RepoEstate {
-  return { repo: REPO, issues, mapping, runs };
+function estate(
+  issues: Issue[],
+  runs: AgentRun[] = [],
+  installedHarnessVersion: string | null = null,
+): RepoEstate {
+  return { repo: REPO, issues, mapping, runs, installedHarnessVersion };
 }
 
 describe("buildRepoDeck — kanban", () => {
@@ -71,10 +75,31 @@ describe("buildRepoDeck — kanban", () => {
       repo: REPO,
       mapping: null,
       runs: [],
+      installedHarnessVersion: null,
       issues: [makeIssue({ number: 1, labels: [label("ready-for-agent")] })],
     });
     expect(deck.counts.untriaged).toBe(1);
     expect(deck.counts["ready-for-agent"]).toBe(0);
+  });
+});
+
+describe("buildRepoDeck — harness drift (#115)", () => {
+  it("reads current when the stamp matches the running build's vintage", () => {
+    const deck = buildRepoDeck(estate([], [], "cur1234"), "cur1234");
+    expect(deck.harness.state).toBe("current");
+    expect(deck.harness.fix).toBeNull();
+  });
+
+  it("reads behind and offers the fix when the stamp is drifted", () => {
+    const deck = buildRepoDeck(estate([], [], "old9999"), "cur1234");
+    expect(deck.harness.state).toBe("behind");
+    expect(deck.harness.fix).toBe("scripts/beachfront-update.sh alpha/one");
+  });
+
+  it("reads unknown for an unstamped (older-onboard) repo", () => {
+    const deck = buildRepoDeck(estate([], [], null), "cur1234");
+    expect(deck.harness.state).toBe("unknown");
+    expect(deck.harness.fix).toBeNull();
   });
 });
 

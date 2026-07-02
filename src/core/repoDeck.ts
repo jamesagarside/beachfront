@@ -19,6 +19,8 @@ import type { Issue } from "../github/issues.ts";
 import type { AgentRun } from "../github/runs.ts";
 import { CANONICAL_STATE_ROLES } from "../triage/mapping.ts";
 import type { RepoEstate } from "./estate.ts";
+import { computeHarnessDrift, type HarnessDrift } from "./harnessDrift.ts";
+import { currentHarnessVersion } from "./harnessVersion.ts";
 
 /**
  * The board's columns, in lifecycle order: `untriaged` first (the rawest /
@@ -54,6 +56,8 @@ export interface RepoDeck {
   /** Per-column issue counts, keyed by role (the per-status summary, #81). */
   counts: Record<DeckColumnKey, number>;
   runs: RunSummary;
+  /** Whether the repo's loop harness is current / behind / unknown (#115). */
+  harness: HarnessDrift;
 }
 
 /** Which board column an issue belongs to — its state role, else untriaged. */
@@ -85,8 +89,16 @@ function summariseRuns(runs: AgentRun[]): RunSummary {
   return summary;
 }
 
-/** Builds the per-repo deck view-model from one repo's aggregated estate. */
-export function buildRepoDeck(repo: RepoEstate): RepoDeck {
+/**
+ * Builds the per-repo deck view-model from one repo's aggregated estate.
+ * `current` is the harness vintage the running Beachfront was built from —
+ * injected so tests can pass any vintage; it defaults to
+ * {@link currentHarnessVersion} so both surfaces judge drift identically.
+ */
+export function buildRepoDeck(
+  repo: RepoEstate,
+  current: string | null = currentHarnessVersion(),
+): RepoDeck {
   const byRole = {} as Record<DeckColumnKey, Issue[]>;
   for (const role of DECK_COLUMN_ORDER) byRole[role] = [];
   for (const issue of repo.issues) byRole[columnFor(issue, repo)].push(issue);
@@ -98,5 +110,11 @@ export function buildRepoDeck(repo: RepoEstate): RepoDeck {
   const counts = {} as Record<DeckColumnKey, number>;
   for (const role of DECK_COLUMN_ORDER) counts[role] = byRole[role].length;
 
-  return { repo: repo.repo, columns, counts, runs: summariseRuns(repo.runs) };
+  return {
+    repo: repo.repo,
+    columns,
+    counts,
+    runs: summariseRuns(repo.runs),
+    harness: computeHarnessDrift(repo.repo, repo.installedHarnessVersion, current),
+  };
 }

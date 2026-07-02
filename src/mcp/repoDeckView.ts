@@ -13,6 +13,7 @@
  * renderers above; this layer only produces numbers and plainspoken lines.
  */
 import type { RepoEstate } from "../core/estate.ts";
+import type { HarnessDrift } from "../core/harnessDrift.ts";
 import {
   buildRepoDeck,
   type DeckColumnKey,
@@ -42,11 +43,21 @@ export interface RepoDeckView {
   counts: Record<DeckColumnKey, number>;
   /** The pinned run/metrics strip (#82). */
   runs: RunSummary;
+  /** Whether the repo's loop harness is current / behind / unknown (#115). */
+  harness: HarnessDrift;
 }
 
-/** Builds the per-repo deck view-model from one repo's aggregated estate. */
-export function buildRepoDeckView(repo: RepoEstate): RepoDeckView {
-  const deck = buildRepoDeck(repo);
+/**
+ * Builds the per-repo deck view-model from one repo's aggregated estate.
+ * `current` is threaded through to {@link buildRepoDeck} so tests can pin the
+ * running build's harness vintage; it defaults to the baked-in constant.
+ */
+export function buildRepoDeckView(
+  repo: RepoEstate,
+  current?: string | null,
+): RepoDeckView {
+  const deck =
+    current === undefined ? buildRepoDeck(repo) : buildRepoDeck(repo, current);
   return {
     owner: deck.repo.owner,
     repo: deck.repo.repo,
@@ -60,6 +71,7 @@ export function buildRepoDeckView(repo: RepoEstate): RepoDeckView {
     })),
     counts: deck.counts,
     runs: deck.runs,
+    harness: deck.harness,
   };
 }
 
@@ -74,6 +86,21 @@ function rolesLine(view: RepoDeckView): string {
     .filter((column) => column.cards.length > 0)
     .map((column) => `${column.cards.length} ${column.role}`);
   return parts.length > 0 ? parts.join(" · ") : "no open issues";
+}
+
+/**
+ * The harness-drift note (#115), or null when the repo is current (nothing to
+ * say). Behind repos carry the exact fix; unstamped repos read as a calm
+ * "unknown vintage" without pushing a fix at them.
+ */
+function harnessLine(harness: HarnessDrift): string | null {
+  if (harness.state === "behind") {
+    return `Harness — behind · update with \`${harness.fix}\``;
+  }
+  if (harness.state === "unknown") {
+    return "Harness — vintage unknown (repo carries no version stamp)";
+  }
+  return null;
 }
 
 /** The pinned run/metrics strip as a calm one-liner. */
@@ -102,6 +129,8 @@ export function renderRepoDeckText(view: RepoDeckView): string {
 
   lines.push(`${view.owner}/${view.repo} — ${rolesLine(view)}`);
   lines.push(runsLine(view.runs));
+  const harness = harnessLine(view.harness);
+  if (harness !== null) lines.push(harness);
 
   for (const column of view.columns) {
     if (column.cards.length === 0) continue;

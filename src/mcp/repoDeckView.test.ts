@@ -6,9 +6,12 @@ import { buildRepoDeckView, renderRepoDeckText } from "./repoDeckView.ts";
 
 const REPO = { owner: "octo", repo: "alpha" };
 
-async function deckFor(fixture: Parameters<typeof mockDataSource>[0][number]) {
+async function deckFor(
+  fixture: Parameters<typeof mockDataSource>[0][number],
+  current: string | null = "cur1234",
+) {
   const estate = await aggregateEstate(mockDataSource([fixture]));
-  return buildRepoDeckView(estate.repos[0]);
+  return buildRepoDeckView(estate.repos[0], current);
 }
 
 describe("buildRepoDeckView", () => {
@@ -111,5 +114,47 @@ describe("renderRepoDeckText", () => {
     const text = renderRepoDeckText(view);
     expect(text.toLowerCase()).toContain("no open issues");
     expect(text.toLowerCase()).toContain("no runs yet");
+  });
+
+  it("names the harness fix for a behind repo (#115)", async () => {
+    const view = await deckFor(
+      { repo: REPO, issues: [], runs: [], harnessVersion: "old9999" },
+      "cur1234",
+    );
+    const text = renderRepoDeckText(view);
+    expect(text.toLowerCase()).toContain("harness — behind");
+    expect(text).toContain("scripts/beachfront-update.sh octo/alpha");
+  });
+
+  it("stays silent about the harness when the repo is current", async () => {
+    const view = await deckFor(
+      { repo: REPO, issues: [], runs: [], harnessVersion: "cur1234" },
+      "cur1234",
+    );
+    expect(renderRepoDeckText(view).toLowerCase()).not.toContain("harness");
+  });
+
+  it("notes an unknown vintage for an unstamped repo without pushing a fix", async () => {
+    const view = await deckFor({ repo: REPO, issues: [], runs: [] }, "cur1234");
+    const text = renderRepoDeckText(view);
+    expect(text.toLowerCase()).toContain("vintage unknown");
+    expect(text).not.toContain("beachfront-update.sh");
+  });
+});
+
+describe("buildRepoDeckView — harness drift (#115)", () => {
+  it("carries the drift state onto the view", async () => {
+    const behind = await deckFor(
+      { repo: REPO, issues: [], harnessVersion: "old9999" },
+      "cur1234",
+    );
+    expect(behind.harness.state).toBe("behind");
+    expect(behind.harness.fix).toBe("scripts/beachfront-update.sh octo/alpha");
+
+    const current = await deckFor(
+      { repo: REPO, issues: [], harnessVersion: "cur1234" },
+      "cur1234",
+    );
+    expect(current.harness.state).toBe("current");
   });
 });

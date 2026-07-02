@@ -23,6 +23,12 @@ export interface RepoEstate {
   /** The repo's triage Mapping, or null when it ships no contract (#6). */
   mapping: TriageMapping | null;
   runs: AgentRun[];
+  /**
+   * The repo's installed harness vintage (its `.sandcastle/.beachfront-version`
+   * stamp's first line), or null when it carries no stamp (an older onboard) —
+   * the raw input the drift indicator is computed from (#115).
+   */
+  installedHarnessVersion: string | null;
 }
 
 export interface Estate {
@@ -47,14 +53,19 @@ async function aggregateRepo(
     return { kind: "skipped", repo };
   }
 
-  // Mapping and runs are best-effort: a failure leaves the repo's issues
-  // visible, just with reduced fidelity rather than dropping the whole repo.
-  const [mapping, runs] = await Promise.all([
+  // Mapping, runs, and the harness vintage are best-effort: a failure leaves the
+  // repo's issues visible, just with reduced fidelity rather than dropping the
+  // whole repo. A missing/unreadable stamp degrades to null → "unknown" drift.
+  const [mapping, runs, installedHarnessVersion] = await Promise.all([
     source.fetchTriageMapping(repo).catch(() => null),
     source.fetchAgentRuns(repo).catch((): AgentRun[] => []),
+    source.fetchHarnessVersion(repo).catch((): string | null => null),
   ]);
 
-  return { kind: "loaded", estate: { repo, issues, mapping, runs } };
+  return {
+    kind: "loaded",
+    estate: { repo, issues, mapping, runs, installedHarnessVersion },
+  };
 }
 
 /**
