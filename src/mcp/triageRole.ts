@@ -13,11 +13,8 @@
 import type { RepoRef } from "../config.ts";
 import type { EstateDataSource } from "../core/dataSource.ts";
 import type { RunCommand } from "./ghDataSource.ts";
-import {
-  CANONICAL_STATE_ROLES,
-  defaultTriageMapping,
-  type TriageStateRole,
-} from "../triage/mapping.ts";
+import { type TriageStateRole } from "../triage/mapping.ts";
+import { reconcileStateRole } from "../triage/reconcile.ts";
 
 /** The tool's stable name — what an MCP host calls and a Viewer can say. */
 export const SET_TRIAGE_ROLE_TOOL_NAME = "beachfront_set_triage_role";
@@ -77,17 +74,14 @@ export async function runSetTriageRoleTool(
   issueNumber: number,
   nextRole: TriageStateRole,
 ): Promise<SetTriageRoleResult> {
-  const mapping = (await source.fetchTriageMapping(repo)) ?? defaultTriageMapping();
-  const target = mapping.labelForRole[nextRole];
-  const stateLabels = new Set(
-    CANONICAL_STATE_ROLES.map((role) => mapping.labelForRole[role]),
-  );
-
+  const mapping = await source.fetchTriageMapping(repo);
   const current = readLabels(run, repo, issueNumber);
-  const removed = current.filter(
-    (label) => stateLabels.has(label) && label !== target,
+  const { target, add, remove: removed } = reconcileStateRole(
+    current,
+    mapping,
+    nextRole,
   );
-  const added = !current.includes(target);
+  const added = add !== null;
 
   if (added || removed.length > 0) {
     const args = ["issue", "edit", String(issueNumber), "-R", slug(repo)];
