@@ -6,6 +6,7 @@
  * aggregation and view builders, so the two surfaces can't diverge.
  */
 import type { RepoRef } from "../config.ts";
+import { fetchHarnessVersion } from "../github/harnessVersion.ts";
 import { fetchOpenIssues } from "../github/issues.ts";
 import { fetchAgentRuns } from "../github/runs.ts";
 import { fetchTriageMapping } from "../github/triageMapping.ts";
@@ -20,5 +21,6 @@ export function webDataSource(
     fetchOpenIssues: (repo) => fetchOpenIssues(token, repo),
     fetchTriageMapping: (repo) => fetchTriageMapping(token, repo),
     fetchAgentRuns: (repo) => fetchAgentRuns(token, repo),
+    fetchHarnessVersion: (repo) => fetchHarnessVersion(token, repo),
   };
 }

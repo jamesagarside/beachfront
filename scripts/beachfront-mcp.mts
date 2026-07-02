@@ -90,6 +90,24 @@ const run: RunCommand = (command, args) =>
 // the same segment rule the CLI's `parseRepoArg` enforces (src/cli/link.ts).
 const ghNameSegment = z.string().regex(/^[A-Za-z0-9._-]+$/);
 
+// The harness vintage this plugin judges Managed-repo drift against (#115): the
+// Beachfront checkout's own short SHA. The SPA bakes this in at build time; the
+// plugin has a live checkout, so derive it here (unless already set) and expose
+// it to `currentHarnessVersion()` via the env, keeping both surfaces on one
+// yardstick. A checkout with no git leaves it unset → drift reads "unknown".
+if (!process.env.BEACHFRONT_HARNESS_VERSION) {
+  try {
+    process.env.BEACHFRONT_HARNESS_VERSION = execFileSync(
+      "git",
+      ["rev-parse", "--short", "HEAD"],
+      { encoding: "utf8" },
+    ).trim();
+  } catch {
+    // No git here — leave unset so drift degrades to "unknown", never a false
+    // "behind".
+  }
+}
+
 const repos = loadRegistryFromDisk(process.cwd());
 const source = ghDataSource(run, repos);
 

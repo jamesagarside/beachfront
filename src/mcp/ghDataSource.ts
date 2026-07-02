@@ -13,6 +13,7 @@
  */
 import type { RepoRef } from "../config.ts";
 import type { EstateDataSource } from "../core/dataSource.ts";
+import { firstLine, HARNESS_VERSION_PATH } from "../github/harnessVersion.ts";
 import type { Issue } from "../github/issues.ts";
 import { type AgentRun, normalizeRunStatus } from "../github/runs.ts";
 import { TRIAGE_LABELS_PATH } from "../github/triageMapping.ts";
@@ -138,5 +139,22 @@ export function ghDataSource(
           "databaseId,name,status,conclusion,url,headBranch,createdAt",
         ]),
       ),
+
+    // A repo with no version stamp returns a 404 from `gh api`; degrade to null
+    // so the drift indicator reads "unknown" rather than failing (#115).
+    fetchHarnessVersion: async (repo) => {
+      let content: string;
+      try {
+        content = run("gh", [
+          "api",
+          `repos/${repo.owner}/${repo.repo}/contents/${HARNESS_VERSION_PATH}`,
+          "--jq",
+          ".content",
+        ]);
+      } catch {
+        return null;
+      }
+      return firstLine(decodeBase64(content));
+    },
   };
 }
