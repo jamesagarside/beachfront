@@ -25,21 +25,43 @@ review gate** lets clean feature PRs auto-merge while always routing security-, 
 and config-touching changes to a human, and a **branch auto-update** keeps the queue
 flowing. The mechanical CI checks always gate the actual merge.
 
-| Piece | Decision |
-| --- | --- |
-| Headless loop per Managed repo | [ADR-0006](docs/adr/0006-onboarding-installs-autonomous-headless-workflow.md) |
-| Gated mechanical auto-merge | [ADR-0007](docs/adr/0007-gated-auto-merge-by-mechanical-allowlist.md) |
-| Independent AI review gate + security block | [ADR-0012](docs/adr/0012-independent-review-agent-gates-loop-prs.md) |
+## Quick start
 
-## Get started
-
-**[→ docs/getting-started.md](docs/getting-started.md)** walks you from nothing to your
-first onboarded, iterating repo: stand up your Instance, set up the GitHub App once, then:
+You need the [`gh`](https://cli.github.com) CLI (logged in, admin on the repos you'll
+onboard), **Node.js**, **`jq`**, and a **Claude** token (`claude setup-token`).
 
 ```sh
-scripts/beachfront-onboard.sh owner/repo    # guided: configure the repo + open its onboarding PR
-npm run beachfront -- link owner/repo       # add it to your Instance's Registry so it appears
+# 1. Stand up your own Instance: on this repo, "Use this template" → create a PRIVATE repo.
+#    Clone it and run the rest from inside it.
+
+# 2. Create the Beachfront GitHub App once (Settings → Developer settings → GitHub Apps):
+#    Contents + Pull requests + Issues = Read/write, no webhook. Note the App ID, download
+#    the private key, and Install the App on each repo you'll onboard.
+
+# 3. Drop your credentials in .sandcastle/.env (gitignored):
+cp .sandcastle/.env.example .sandcastle/.env      # then fill in the token, App ID, and key path
+
+# 4. Onboard a repo, then link it into your Estate:
+scripts/beachfront-onboard.sh owner/repo          # guided: configures the repo + opens its onboarding PR
+npm run beachfront -- link owner/repo             # adds it to your Instance's Registry so it appears
 ```
+
+Merge the two PRs (onboarding + link) and the repo starts draining `ready-for-agent`
+issues. **[→ docs/getting-started.md](docs/getting-started.md)** explains every step, the
+onboarding choices, and troubleshooting.
+
+### Keeping an onboarded repo current
+
+The onboarder installs a snapshot of the loop's workflows into each repo. When Beachfront
+improves that harness, pull the changes into an already-onboarded repo with:
+
+```sh
+scripts/beachfront-update.sh owner/repo           # opens a PR that re-applies the current harness
+```
+
+It only refreshes files the repo already has, stamps the installed version, and leaves the
+diff for you to review before merging. The [harness changelog](docs/harness-changelog.md)
+records what changed between vintages, keyed to the stamped version.
 
 ## Develop
 
