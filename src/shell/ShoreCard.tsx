@@ -13,9 +13,15 @@ import type { RepoHealth } from "./shoreSummary.ts";
  * attention scannable across the shore; running agents wear tide-teal when in
  * flight and fade to driftwood when idle. A fully calm repo (nothing needing a
  * human, no agents running) reads quiet driftwood — never loud.
+ *
+ * A fourth, quieter signal (#115): a harness-drift note. It appears ONLY when a
+ * repo is behind the current loop harness (coral, carrying the exact
+ * `beachfront-update.sh` fix as its hover/tooltip text) or when its vintage is
+ * unknown (driftwood — an older onboard with no version stamp). A current repo
+ * says nothing, keeping the card calm.
  */
 export function ShoreCard({ health }: { health: RepoHealth }) {
-  const { repo, openIssues, attention, running } = health;
+  const { repo, openIssues, attention, running, harness } = health;
 
   // The card's top seam is its horizon line; it warms to coral only when the
   // repo needs a human, so a scan of the shore reads by colour alone.
@@ -57,6 +63,21 @@ export function ShoreCard({ health }: { health: RepoHealth }) {
           {running} {running === 1 ? "agent" : "agents"} running
         </span>
       </span>
+
+      {/* Harness drift — silent when current; coral behind, driftwood unknown. */}
+      {harness.state === "behind" && (
+        <span
+          title={`Update with: ${harness.fix}`}
+          className="mt-1.5 block text-xs font-medium text-coral"
+        >
+          harness behind
+        </span>
+      )}
+      {harness.state === "unknown" && (
+        <span className="mt-1.5 block text-xs text-driftwood">
+          harness vintage unknown
+        </span>
+      )}
     </a>
   );
 }

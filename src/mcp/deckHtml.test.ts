@@ -6,9 +6,12 @@ import { renderDeckHtml } from "./deckHtml.ts";
 
 const REPO = { owner: "octo", repo: "alpha" };
 
-async function html(fixture: Parameters<typeof mockDataSource>[0][number]) {
+async function html(
+  fixture: Parameters<typeof mockDataSource>[0][number],
+  current: string | null = "cur1234",
+) {
   const estate = await aggregateEstate(mockDataSource([fixture]));
-  return renderDeckHtml(buildRepoDeckView(estate.repos[0]));
+  return renderDeckHtml(buildRepoDeckView(estate.repos[0], current));
 }
 
 describe("renderDeckHtml", () => {
@@ -52,6 +55,32 @@ describe("renderDeckHtml", () => {
     });
     expect(out).toContain("1 running");
     expect(out).toContain("50% success");
+  });
+
+  it("shows a coral 'harness behind' pill spelling out the fix (#115)", async () => {
+    const out = await html(
+      { repo: REPO, issues: [], runs: [], harnessVersion: "old9999" },
+      "cur1234",
+    );
+    expect(out).toContain("harness behind");
+    expect(out).toContain("scripts/beachfront-update.sh octo/alpha");
+    expect(out).toContain("harness-behind");
+  });
+
+  it("shows a calm 'vintage unknown' pill for an unstamped repo, no fix", async () => {
+    const out = await html({ repo: REPO, issues: [], runs: [] }, "cur1234");
+    expect(out).toContain("harness vintage unknown");
+    expect(out).not.toContain("beachfront-update.sh");
+  });
+
+  it("says nothing about the harness when the repo is current", async () => {
+    const out = await html(
+      { repo: REPO, issues: [], runs: [], harnessVersion: "cur1234" },
+      "cur1234",
+    );
+    // The drift pill's own text is absent (the CSS class names always exist).
+    expect(out).not.toContain("harness behind");
+    expect(out).not.toContain("harness vintage unknown");
   });
 
   it("escapes issue titles so they can't break the markup", async () => {

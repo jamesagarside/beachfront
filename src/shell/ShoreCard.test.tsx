@@ -15,6 +15,7 @@ function health(over: Partial<RepoHealth> = {}): RepoHealth {
     openIssues: 3,
     attention: 1,
     running: 2,
+    harness: { state: "current", installed: "cur1234", current: "cur1234", fix: null },
     ...over,
   };
 }
@@ -62,5 +63,43 @@ describe("ShoreCard", () => {
     render(<ShoreCard health={health({ running: 0 })} />);
     const agents = screen.getByText("0 agents running");
     expect(agents.className).toContain("text-driftwood");
+  });
+
+  it("flags a behind harness in coral, with the fix as its tooltip (#115)", () => {
+    render(
+      <ShoreCard
+        health={health({
+          harness: {
+            state: "behind",
+            installed: "old9999",
+            current: "cur1234",
+            fix: "scripts/beachfront-update.sh alpha/one",
+          },
+        })}
+      />,
+    );
+    const note = screen.getByText("harness behind");
+    expect(note.className).toContain("text-coral");
+    expect(note).toHaveAttribute(
+      "title",
+      "Update with: scripts/beachfront-update.sh alpha/one",
+    );
+  });
+
+  it("notes an unknown vintage in quiet driftwood, no fix (older onboard)", () => {
+    render(
+      <ShoreCard
+        health={health({
+          harness: { state: "unknown", installed: null, current: "cur1234", fix: null },
+        })}
+      />,
+    );
+    const note = screen.getByText("harness vintage unknown");
+    expect(note.className).toContain("text-driftwood");
+  });
+
+  it("says nothing about the harness when the repo is current — stays calm", () => {
+    render(<ShoreCard health={health()} />);
+    expect(screen.queryByText(/harness/)).not.toBeInTheDocument();
   });
 });
