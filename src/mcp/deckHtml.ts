@@ -83,10 +83,32 @@ function renderColumn(column: RepoDeckView["columns"][number]): string {
   );
 }
 
-/** The pinned run/metrics strip (#82): counts plus success rate where known. */
-function renderRunStrip(runs: RepoDeckView["runs"]): string {
+/**
+ * The harness-drift note (#115) as a calm pill, or "" when the repo is current
+ * (nothing to say). A behind repo wears coral and spells out the exact fix; an
+ * unstamped repo reads driftwood-grey "vintage unknown" without pushing a fix.
+ */
+function renderHarness(harness: RepoDeckView["harness"]): string {
+  if (harness.state === "behind") {
+    return (
+      `<span class="metric harness-behind">harness behind — ` +
+      `run <code>${escapeHtml(harness.fix ?? "")}</code></span>`
+    );
+  }
+  if (harness.state === "unknown") {
+    return `<span class="metric harness-unknown">harness vintage unknown</span>`;
+  }
+  return "";
+}
+
+/**
+ * The pinned run/metrics strip (#82): counts plus success rate where known, with
+ * the harness-drift pill (#115) riding alongside so a Viewer sees a stale repo
+ * at the same glance as its runs.
+ */
+function renderRunStrip(runs: RepoDeckView["runs"], harness: string): string {
   if (runs.total === 0) {
-    return `<div class="runs"><span class="metric">no runs yet</span></div>`;
+    return `<div class="runs"><span class="metric">no runs yet</span>${harness}</div>`;
   }
   const rate =
     runs.successRate === null
@@ -99,6 +121,7 @@ function renderRunStrip(runs: RepoDeckView["runs"]): string {
     `<span class="metric">${runs.succeeded} succeeded</span>` +
     `<span class="metric">${runs.failed} failed</span>` +
     rate +
+    harness +
     `</div>`
   );
 }
@@ -107,6 +130,7 @@ function renderRunStrip(runs: RepoDeckView["runs"]): string {
 export function renderDeckHtml(view: RepoDeckView): string {
   const slug = escapeHtml(`${view.owner}/${view.repo}`);
   const columns = view.columns.map(renderColumn).join("");
+  const harness = renderHarness(view.harness);
   return `<!doctype html>
 <html lang="en">
 <head>
@@ -121,6 +145,9 @@ export function renderDeckHtml(view: RepoDeckView): string {
   .runs { position: sticky; top: 0; display: flex; flex-wrap: wrap; gap: 8px;
     padding: 8px 20px 12px; background: #f6f8f7; }
   .metric { padding: 2px 10px; border-radius: 999px; background: #e5ecea; font-size: 12px; }
+  .metric.harness-behind { background: rgba(255,140,97,0.18); color: #8a3d1f; }
+  .metric.harness-unknown { color: ${DRIFTWOOD}; }
+  .metric code { font: inherit; font-family: ui-monospace, monospace; }
   .board { display: flex; gap: 12px; padding: 4px 20px 24px; overflow-x: auto; align-items: flex-start; }
   .col { flex: 0 0 220px; background: #fff; border-radius: 10px; border-top: 3px solid ${DRIFTWOOD};
     box-shadow: 0 1px 2px rgba(0,0,0,0.05); }
@@ -137,7 +164,7 @@ export function renderDeckHtml(view: RepoDeckView): string {
 </head>
 <body>
 <header><h1>${slug}</h1></header>
-${renderRunStrip(view.runs)}
+${renderRunStrip(view.runs, harness)}
 <main class="board">${columns}</main>
 </body>
 </html>`;

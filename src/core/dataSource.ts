@@ -7,11 +7,13 @@
  * surface supplies its own implementation; the logic and rendering above are
  * shared, so the MCP App and the web SPA cannot diverge.
  *
- * The four reads mirror what a Managed repo's view needs: which repos to show,
- * each repo's open issues, its triage Mapping (#6), and its Agent runs (#10).
- * A source that can't read a repo's issues signals it by rejecting
- * {@link fetchOpenIssues}; a missing Mapping resolves to `null` and missing runs
- * to `[]`, so classification and the run strip degrade calmly (ADR-0003).
+ * The five reads mirror what a Managed repo's view needs: which repos to show,
+ * each repo's open issues, its triage Mapping (#6), its Agent runs (#10), and
+ * its installed harness vintage (#115). A source that can't read a repo's issues
+ * signals it by rejecting {@link fetchOpenIssues}; a missing Mapping resolves to
+ * `null`, missing runs to `[]`, and a missing version stamp to `null`, so
+ * classification, the run strip, and the drift indicator degrade calmly
+ * (ADR-0003).
  */
 import type { RepoRef } from "../config.ts";
 import type { Issue } from "../github/issues.ts";
@@ -27,4 +29,10 @@ export interface EstateDataSource {
   fetchTriageMapping(repo: RepoRef): Promise<TriageMapping | null>;
   /** A repo's recent Agent runs (#10). */
   fetchAgentRuns(repo: RepoRef): Promise<AgentRun[]>;
+  /**
+   * A repo's installed harness vintage — the first line of its
+   * `.sandcastle/.beachfront-version` stamp — or `null` when it carries no stamp
+   * (an older onboard, before the stamp convention) (#115).
+   */
+  fetchHarnessVersion(repo: RepoRef): Promise<string | null>;
 }

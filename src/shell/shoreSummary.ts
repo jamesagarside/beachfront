@@ -11,6 +11,8 @@
  * what "needs a human" means.
  */
 import type { RepoRef } from "../config.ts";
+import { computeHarnessDrift, type HarnessDrift } from "../core/harnessDrift.ts";
+import { currentHarnessVersion } from "../core/harnessVersion.ts";
 import { buildAttentionQueue } from "../github/attentionQueue.ts";
 import type { RepoRuns } from "../github/runsSummary.ts";
 import type { RepoIssues } from "../github/useRegistryIssues.ts";
@@ -28,6 +30,8 @@ export interface RepoHealth {
    * counts them the same way; the run summary panel breaks out the queue.
    */
   running: number;
+  /** Whether the repo's loop harness is current / behind / unknown (#115). */
+  harness: HarnessDrift;
 }
 
 export interface ShoreSummary {
@@ -55,6 +59,7 @@ function repoKey({ owner, repo }: RepoRef): string {
 export function buildShoreSummary(
   issues: RepoIssues[],
   runs: RepoRuns[],
+  current: string | null = currentHarnessVersion(),
 ): ShoreSummary {
   const runsByRepo = new Map<string, RepoRuns>();
   for (const entry of runs) runsByRepo.set(repoKey(entry.repo), entry);
@@ -72,6 +77,13 @@ export function buildShoreSummary(
       openIssues: entry.issues.length,
       attention,
       running,
+      // Shared with the MCP surface via the core drift function, so both
+      // surfaces give one answer (#115). An absent stamp reads as unknown.
+      harness: computeHarnessDrift(
+        entry.repo,
+        entry.installedHarnessVersion ?? null,
+        current,
+      ),
     };
   });
 

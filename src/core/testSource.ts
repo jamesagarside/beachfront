@@ -14,6 +14,8 @@ export interface RepoFixture {
   issues?: Issue[];
   mapping?: TriageMapping | null;
   runs?: AgentRun[];
+  /** The repo's installed harness vintage stamp, or null when unstamped (#115). */
+  harnessVersion?: string | null;
   /** When true, the source rejects this repo's issues read (inaccessible). */
   inaccessible?: boolean;
 }
@@ -62,5 +64,7 @@ export function mockDataSource(fixtures: RepoFixture[]): EstateDataSource {
     fetchTriageMapping: (repo) =>
       Promise.resolve(find(fixtures, repo)?.mapping ?? null),
     fetchAgentRuns: (repo) => Promise.resolve(find(fixtures, repo)?.runs ?? []),
+    fetchHarnessVersion: (repo) =>
+      Promise.resolve(find(fixtures, repo)?.harnessVersion ?? null),
   };
 }

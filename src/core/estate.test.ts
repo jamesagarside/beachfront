@@ -74,4 +74,23 @@ describe("aggregateEstate", () => {
 
     expect(estate.repos[0].runs).toEqual([]);
   });
+
+  it("carries each repo's installed harness vintage from the source (#115)", async () => {
+    const estate = await aggregateEstate(
+      mockDataSource([{ repo: ALPHA, harnessVersion: "abc1234" }]),
+    );
+    expect(estate.repos[0].installedHarnessVersion).toBe("abc1234");
+  });
+
+  it("degrades an unstamped or unreadable version to null (→ unknown drift)", async () => {
+    const unstamped = await aggregateEstate(mockDataSource([{ repo: ALPHA }]));
+    expect(unstamped.repos[0].installedHarnessVersion).toBeNull();
+
+    const failing: EstateDataSource = {
+      ...mockDataSource([{ repo: BETA, issues: [makeIssue({ number: 1 })] }]),
+      fetchHarnessVersion: () => Promise.reject(new Error("boom")),
+    };
+    const degraded = await aggregateEstate(failing);
+    expect(degraded.repos[0].installedHarnessVersion).toBeNull();
+  });
 });

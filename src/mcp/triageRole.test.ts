@@ -41,6 +41,7 @@ function sourceWithMapping(mapping: TriageMapping | null): EstateDataSource {
     fetchOpenIssues: () => Promise.reject(new Error("unused")),
     fetchTriageMapping: () => Promise.resolve(mapping),
     fetchAgentRuns: () => Promise.resolve([]),
+    fetchHarnessVersion: () => Promise.resolve(null),
   };
 }
 

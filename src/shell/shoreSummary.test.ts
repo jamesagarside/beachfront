@@ -21,8 +21,9 @@ function repoIssues(
   owner: string,
   repo: string,
   issues: Issue[],
+  installedHarnessVersion: string | null = null,
 ): RepoIssues {
-  return { repo: { owner, repo }, issues, mapping };
+  return { repo: { owner, repo }, issues, mapping, installedHarnessVersion };
 }
 
 describe("buildShoreSummary", () => {
@@ -47,10 +48,10 @@ describe("buildShoreSummary", () => {
       },
     ];
 
-    const summary = buildShoreSummary(issues, runs);
+    const summary = buildShoreSummary(issues, runs, "cur1234");
 
     expect(summary.repos).toHaveLength(2);
-    expect(summary.repos[0]).toEqual({
+    expect(summary.repos[0]).toMatchObject({
       repo: { owner: "acme", repo: "alpha" },
       openIssues: 2,
       attention: 1,
@@ -69,7 +70,34 @@ describe("buildShoreSummary", () => {
     );
     expect(summary.repos[0].running).toBe(0);
   });
+
+  it("computes each repo's harness drift against the build's vintage (#115)", () => {
+    const summary = buildShoreSummary(
+      [
+        repoIssues("acme", "alpha", [], "cur1234"), // matches
+        repoIssues("acme", "beta", [], "old9999"), // drifted
+        repoIssues("acme", "gamma", []), // no stamp
+      ],
+      [],
+      "cur1234",
+    );
+    expect(summary.repos[0].harness.state).toBe("current");
+    expect(summary.repos[1].harness.state).toBe("behind");
+    expect(summary.repos[1].harness.fix).toBe(
+      "scripts/beachfront-update.sh acme/beta",
+    );
+    expect(summary.repos[2].harness.state).toBe("unknown");
+    expect(summary.repos[2].harness.fix).toBeNull();
+  });
 });
+
+/** A calm, current harness drift for tideLine fixtures (drift isn't its input). */
+const CALM_HARNESS = {
+  state: "unknown" as const,
+  installed: null,
+  current: null,
+  fix: null,
+};
 
 describe("tideLine", () => {
   const base = { repos: [], calmCount: 0, needsYouCount: 0, totalAttention: 0 };
@@ -83,7 +111,13 @@ describe("tideLine", () => {
       tideLine({
         ...base,
         repos: [
-          { repo: { owner: "a", repo: "b" }, openIssues: 0, attention: 0, running: 0 },
+          {
+            repo: { owner: "a", repo: "b" },
+            openIssues: 0,
+            attention: 0,
+            running: 0,
+            harness: CALM_HARNESS,
+          },
         ],
         calmCount: 1,
       }),
@@ -96,6 +130,7 @@ describe("tideLine", () => {
       openIssues: 0,
       attention: i < 3 ? 1 : 0,
       running: 0,
+      harness: CALM_HARNESS,
     }));
     expect(
       tideLine({ repos, calmCount: 9, needsYouCount: 3, totalAttention: 3 }),

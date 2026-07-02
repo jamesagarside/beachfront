@@ -21,6 +21,8 @@ import {
   type PoolItem,
 } from "../github/readyForAgentPool.ts";
 import type { AgentRun } from "../github/runs.ts";
+import { computeHarnessDrift, type HarnessDrift } from "./harnessDrift.ts";
+import { currentHarnessVersion } from "./harnessVersion.ts";
 import type { Estate, RepoEstate } from "./estate.ts";
 
 /** One repo's compact health summary in the shore grid. */
@@ -31,6 +33,8 @@ export interface RepoHealth {
   attentionCount: number;
   /** Agent runs currently running for this repo. */
   runningCount: number;
+  /** Whether the repo's loop harness is current / behind / unknown (#115). */
+  harness: HarnessDrift;
 }
 
 /** The calm one-glance totals across the whole estate. */
@@ -62,18 +66,31 @@ function attentionCount(repo: RepoEstate): number {
   );
 }
 
-function repoHealth(repo: RepoEstate): RepoHealth {
+function repoHealth(repo: RepoEstate, current: string | null): RepoHealth {
   return {
     repo: repo.repo,
     openCount: repo.issues.length,
     attentionCount: attentionCount(repo),
     runningCount: runningCount(repo.runs),
+    harness: computeHarnessDrift(
+      repo.repo,
+      repo.installedHarnessVersion,
+      current,
+    ),
   };
 }
 
-/** Builds the Shoreline view-model from an aggregated estate. */
-export function buildShoreline(estate: Estate): Shoreline {
-  const repos = estate.repos.map(repoHealth);
+/**
+ * Builds the Shoreline view-model from an aggregated estate. `current` is the
+ * harness vintage the running Beachfront was built from — injected so tests can
+ * pass any vintage; it defaults to {@link currentHarnessVersion} (the baked-in
+ * build constant), so both surfaces judge drift against the same yardstick.
+ */
+export function buildShoreline(
+  estate: Estate,
+  current: string | null = currentHarnessVersion(),
+): Shoreline {
+  const repos = estate.repos.map((repo) => repoHealth(repo, current));
   const tideLine: TideLine = {
     repoCount: repos.length,
     openCount: repos.reduce((sum, r) => sum + r.openCount, 0),

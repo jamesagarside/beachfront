@@ -8,7 +8,10 @@ function stubRun(
   handlers: Partial<{
     issue: string;
     runList: string;
+    /** `gh api contents` for the triage Mapping (docs/agents/triage-labels.md). */
     content: string;
+    /** `gh api contents` for the harness version stamp (.beachfront-version). */
+    version: string;
   }>,
 ): { run: RunCommand; calls: string[][] } {
   const calls: string[][] = [];
@@ -23,6 +26,11 @@ function stubRun(
       return handlers.runList;
     }
     if (args[0] === "api") {
+      // Two contents reads share the `api` verb; split on the path argument.
+      if (args[1]?.includes(".beachfront-version")) {
+        if (handlers.version === undefined) throw new Error("404");
+        return handlers.version;
+      }
       if (handlers.content === undefined) throw new Error("404");
       return handlers.content;
     }
@@ -152,5 +160,25 @@ describe("ghDataSource", () => {
     const { run } = stubRun({}); // api handler throws
     const source = ghDataSource(run, [REPO]);
     expect(await source.fetchTriageMapping(REPO)).toBeNull();
+  });
+
+  it("reads the harness vintage from the `.beachfront-version` stamp (#115)", async () => {
+    const version = btoa("abc1234\n# onboarded 2026-07-02\n");
+    const { run, calls } = stubRun({ version });
+    const source = ghDataSource(run, [REPO]);
+
+    // The first line is the vintage; trailing notes are ignored.
+    expect(await source.fetchHarnessVersion(REPO)).toBe("abc1234");
+    // It reads the onboarder's stamp path via the contents API (calls records
+    // [command, ...args], so the path arg sits at index 2).
+    const apiCall = calls.find((c) => c[2]?.includes(".beachfront-version"))!;
+    expect(apiCall).toBeDefined();
+    expect(apiCall[2]).toContain("octo/widgets");
+  });
+
+  it("degrades to null when the repo carries no version stamp (older onboard)", async () => {
+    const { run } = stubRun({}); // version handler throws (404)
+    const source = ghDataSource(run, [REPO]);
+    expect(await source.fetchHarnessVersion(REPO)).toBeNull();
   });
 });

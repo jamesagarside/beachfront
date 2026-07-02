@@ -1,10 +1,14 @@
 import type { RepoRef } from "../config.ts";
+import { computeHarnessDrift } from "../core/harnessDrift.ts";
+import { currentHarnessVersion } from "../core/harnessVersion.ts";
 import { AgentRuns } from "../github/AgentRuns.tsx";
 import { GitHubAuthError } from "../github/issues.ts";
 import { useAgentRuns } from "../github/useRuns.ts";
+import { useHarnessVersion } from "../github/useHarnessVersion.ts";
 import { useOpenIssues } from "../github/useIssues.ts";
 import { useTriageMapping } from "../github/useTriageMapping.ts";
 import { SHORELINE_HASH } from "../routing/route.ts";
+import { HarnessNote } from "./HarnessNote.tsx";
 import { KanbanBoard } from "./KanbanBoard.tsx";
 import { RunMetricsPanel } from "./RunMetricsPanel.tsx";
 import { StatusCounts } from "./StatusCounts.tsx";
@@ -31,8 +35,15 @@ export function RepoDeck({
   const { data: issues, isPending, isError, error } = useOpenIssues(token, repo);
   const { data: mapping } = useTriageMapping(token, repo);
   const { data: runs } = useAgentRuns(token, repo);
+  const { data: installedHarness } = useHarnessVersion(token, repo);
 
   const slug = `${repo.owner}/${repo.repo}`;
+  // One shared answer with the MCP surface, via the core drift function (#115).
+  const harness = computeHarnessDrift(
+    repo,
+    installedHarness ?? null,
+    currentHarnessVersion(),
+  );
 
   return (
     <div className="flex flex-col gap-10">
@@ -46,6 +57,10 @@ export function RepoDeck({
             <StatusCounts issues={issues} mapping={mapping ?? null} />
           </div>
         )}
+        {/* Harness drift — silent when current, coral with the fix when behind. */}
+        <div className="mt-2">
+          <HarnessNote drift={harness} />
+        </div>
         {/* Horizon line — the brand's sea/sky seam, closing the masthead. */}
         <div
           aria-hidden="true"

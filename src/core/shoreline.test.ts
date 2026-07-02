@@ -11,8 +11,11 @@ function label(name: string) {
   return { name, color: "" };
 }
 
-async function shorelineFrom(fixtures: Parameters<typeof mockDataSource>[0]) {
-  return buildShoreline(await aggregateEstate(mockDataSource(fixtures)));
+async function shorelineFrom(
+  fixtures: Parameters<typeof mockDataSource>[0],
+  current: string | null = "cur1234",
+) {
+  return buildShoreline(await aggregateEstate(mockDataSource(fixtures)), current);
 }
 
 describe("buildShoreline", () => {
@@ -63,8 +66,37 @@ describe("buildShoreline", () => {
     ]);
 
     expect(shoreline.repos).toEqual([
-      { repo: ALPHA, openCount: 2, attentionCount: 1, runningCount: 1 },
+      {
+        repo: ALPHA,
+        openCount: 2,
+        attentionCount: 1,
+        runningCount: 1,
+        // No stamp in this fixture → unknown drift, no fix pushed.
+        harness: { state: "unknown", installed: null, current: "cur1234", fix: null },
+      },
     ]);
+  });
+
+  it("computes each repo's harness drift against the running build's vintage (#115)", async () => {
+    const shoreline = await shorelineFrom(
+      [
+        { repo: ALPHA, issues: [], harnessVersion: "cur1234" }, // matches
+        { repo: BETA, issues: [], harnessVersion: "old9999" }, // drifted
+      ],
+      "cur1234",
+    );
+
+    const [alpha, beta] = shoreline.repos;
+    expect(alpha.harness.state).toBe("current");
+    expect(beta.harness.state).toBe("behind");
+    // A behind repo carries the exact fix a Viewer runs.
+    expect(beta.harness.fix).toBe("scripts/beachfront-update.sh beta/two");
+  });
+
+  it("reads unknown drift for an unstamped (older-onboard) repo", async () => {
+    const shoreline = await shorelineFrom([{ repo: ALPHA, issues: [] }], "cur1234");
+    expect(shoreline.repos[0].harness.state).toBe("unknown");
+    expect(shoreline.repos[0].harness.fix).toBeNull();
   });
 
   it("composes the cross-repo attention queue and ready-for-agent pool", async () => {
